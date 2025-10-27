@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  category    String
+  popular     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  variants    ProductVariant[]
+  addons      Addon[]
+  allergens   String
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  name      String
+  price     Int // pence
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
+}
+
+model Addon {
+  id        String  @id @default(cuid())
+  productId String?
+  name      String
+  price     Int // pence
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("addons")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  createdAt     DateTime    @default(now())
+  status        OrderStatus
+  fulfilment    FulfilmentType
+  slotStart     DateTime?
+  slotEnd       DateTime?
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  addressLine1  String?
+  city          String?
+  postcode      String?
+  notes         String?
+  items         OrderItem[]
+  subtotal      Int // pence
+  deliveryFee   Int // pence
+  tip           Int // pence
+  serviceFee    Int // pence
+  total         Int // pence
+  currency      String      @default("GBP")
+  payment       Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  sku       String
+  name      String
+  price     Int // pence
+  quantity  Int
+  addons    Json?
+  allergens String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String        @unique
+  gateway     String        @default("worldpay")
+  status      PaymentStatus
+  worldpayRef String?
+  amount      Int // pence
+  currency    String        @default("GBP")
+  createdAt   DateTime      @default(now())
+  capturedAt  DateTime?
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum OrderStatus {
+  payment_authorized
+  captured
+  rejected
+  preparing
+  ready
+  completed
+}
+
+enum FulfilmentType {
+  pickup
+  delivery
+}
+
+enum PaymentStatus {
+  authorized
+  captured
+  voided
+  failed
+}

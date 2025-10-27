@@ -1,0 +1,98 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { verifyWebhookSignature, processWebhookPayload } from '@/lib/worldpay';
+
+const prisma = new PrismaClient();
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text();
+    const signature = request.headers.get('x-worldpay-signature') || '';
+
+    // Verify webhook signature
+    if (!verifyWebhookSignature(body, signature)) {
+      console.error('Invalid webhook signature');
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 401 }
+      );
+    }
+
+    // Parse webhook payload
+    const payload = JSON.parse(body);
+    const webhookData = processWebhookPayload(payload);
+
+    // Find payment record
+    const payment = await prisma.payment.findFirst({
+      where: { worldpayRef: webhookData.worldpayRef },
+      include: { order: true },
+    });
+
+    if (!payment) {
+      console.error('Payment not found for webhook:', webhookData.worldpayRef);
+      return NextResponse.json(
+        { error: 'Payment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update payment status based on webhook
+    const updateData: any = {
+      status: webhookData.status,
+    };
+
+    if (webhookData.status === 'captured') {
+      updateData.capturedAt = new Date();
+    }
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: updateData,
+    });
+
+    // Update order status
+    let orderStatus = payment.order.status;
+    switch (webhookData.status) {
+      case 'captured':
+        orderStatus = 'captured';
+        break;
+      case 'voided':
+        orderStatus = 'rejected';
+        break;
+      case 'failed':
+        orderStatus = 'rejected';
+        break;
+    }
+
+    await prisma.order.update({
+      where: { id: payment.orderId },
+      data: { status: orderStatus },
+    });
+
+    // Store webhook payload for audit
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        // In a real implementation, you might store the raw webhook payload
+        // For now, we'll just log it
+      },
+    });
+
+    console.log('Webhook processed successfully:', {
+      worldpayRef: webhookData.worldpayRef,
+      status: webhookData.status,
+      orderId: payment.orderId,
+    });
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}

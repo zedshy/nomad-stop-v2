@@ -1,0 +1,96 @@
+📋 Nomad Stop - GoDaddy cPanel Deployment Checklist
+
+═══════════════════════════════════════════════
+BEFORE UPLOADING TO cPanel
+═══════════════════════════════════════════════
+
+1. Build Your Next.js App
+   ✅ Run: npm run build
+   ✅ Output will be in .next/ folder
+
+2. Prepare Files for Upload
+   ✅ .next/ folder (entire folder)
+   ✅ public/ folder
+   ✅ prisma/ folder (include dev.db)
+   ✅ package.json
+   ✅ package-lock.json
+   ✅ .env (with production credentials)
+
+3. GoDaddy cPanel Setup
+   ✅ Access cPanel
+   ✅ Go to "Node.js Selector"
+   ✅ Create new Node.js application
+   ✅ Set Node.js version to 20+
+   ✅ Point to public_html directory
+
+═══════════════════════════════════════════════
+DEPLOYMENT STEPS
+═══════════════════════════════════════════════
+
+Step 1: Upload Files via FTP or File Manager
+  • Upload entire project to public_html/
+  • Ensure all folders are uploaded
+
+Step 2: Install Dependencies
+  • SSH into your hosting or use cPanel terminal
+  • Run: npm install --production
+
+Step 3: Configure Environment Variables
+  • Edit .env file on server
+  • Add all required credentials (Worldpay, Email, etc.)
+
+Step 4: Database Setup
+  • Ensure prisma/dev.db is uploaded
+  • Create regular backups
+
+Step 5: Start Application
+  • Go to cPanel → Node.js Selector
+  • Click "Start" on your app
+  • Application should start automatically
+
+═══════════════════════════════════════════════
+POST-DEPLOYMENT TESTING
+═══════════════════════════════════════════════
+
+✅ Homepage loads (https://yourdomain.com)
+✅ Menu page shows all items
+✅ Cart functionality works
+✅ Checkout creates orders
+✅ Admin login works (/admin)
+✅ Orders appear in admin dashboard
+✅ Order status updates work
+✅ Email notifications send (after email config)
+
+═══════════════════════════════════════════════
+IMPORTANT CREDENTIALS TO SAVE
+═══════════════════════════════════════════════
+
+Worldpay Checkout ID: 88a4ae8f-977d-4fb4-80c1-c54f496582b9
+Username: tY5vFOEBm0Y4rGRV
+Password: HlOqIseYf16eP8xH1UnoDXnoQx9kOVOkRSGXgmvgnkUkCWhHC2B65IAjnMuC7MrE
+API Key: PO4085650052
+
+Admin URL: /admin
+Admin Password: (Set in .env)
+
+Email Settings: (Configure in cPanel)
+
+═══════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════
+
+Issue: App won't start
+Solution: Check Node.js version (needs 20+)
+
+Issue: 500 Error
+Solution: Check error logs in cPanel
+
+Issue: Database errors
+Solution: Verify prisma/dev.db permissions
+
+Issue: Email not working
+Solution: Configure GoDaddy SMTP in .env
+
+═══════════════════════════════════════════════
+
+Ready to deploy! 🚀
