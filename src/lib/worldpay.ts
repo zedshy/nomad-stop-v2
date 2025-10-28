@@ -2,9 +2,6 @@
 
 const WORLDPAY_USERNAME = process.env.WORLDPAY_USERNAME || '';
 const WORLDPAY_PASSWORD = process.env.WORLDPAY_PASSWORD || '';
-const WORLDPAY_API_KEY = process.env.WORLDPAY_API_KEY || '';
-const WORLDPAY_CHECKOUT_ID = process.env.WORLDPAY_CHECKOUT_ID || '';
-const WORLDPAY_CLIENT_KEY = process.env.WORLDPAY_CLIENT_KEY || '';
 
 export interface WorldpayOrder {
   amount: number; // in pence
@@ -190,11 +187,11 @@ export async function voidAuth(worldpayRef: string): Promise<WorldpayVoidResult>
 export function verifyWebhookSignature(payload: string, signature: string): boolean {
   // In a real implementation, you'd verify the signature using Worldpay's method
   // For now, we'll just check if the signature exists
-  return signature && signature.length > 0;
+  return Boolean(signature && signature.length > 0);
 }
 
 // Process webhook payload
-export function processWebhookPayload(payload: any): {
+export function processWebhookPayload(payload: Record<string, unknown>): {
   worldpayRef: string;
   status: 'authorized' | 'captured' | 'voided' | 'failed';
   amount: number;
@@ -202,9 +199,9 @@ export function processWebhookPayload(payload: any): {
 } {
   // In a real implementation, you'd parse the actual Worldpay webhook payload
   return {
-    worldpayRef: payload.worldpayRef || payload.reference,
-    status: payload.status || 'failed',
-    amount: payload.amount || 0,
-    currency: payload.currency || 'GBP',
+    worldpayRef: String(payload.worldpayRef || payload.reference || ''),
+    status: (payload.status as 'authorized' | 'captured' | 'voided' | 'failed') || 'failed',
+    amount: Number(payload.amount || 0),
+    currency: String(payload.currency || 'GBP'),
   };
 }

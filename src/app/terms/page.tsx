@@ -7,7 +7,7 @@ export default function TermsPage() {
           
           <div className="prose prose-lg max-w-none">
             <p className="text-lg text-gray-700 mb-6">
-              These terms and conditions govern your use of Nomad Stop's online ordering service.
+              These terms and conditions govern your use of Nomad Stop&apos;s online ordering service.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Ordering and Payment</h2>

@@ -40,13 +40,13 @@ export default function OrderPendingPage() {
 
           <div className="space-y-6">
             <p className="text-gray-300 text-lg">
-              We'll confirm your order within the next few minutes. You'll receive an email 
+              We&apos;ll confirm your order within the next few minutes. You&apos;ll receive an email 
               once your order is accepted and we start preparing your meal.
             </p>
             
             <div className="bg-yellow-600/20 border border-yellow-600/30 rounded-lg p-4">
               <p className="text-sm text-yellow-400">
-                <strong>Note:</strong> If you don't receive confirmation within 10 minutes, 
+                <strong>Note:</strong> If you don&apos;t receive confirmation within 10 minutes, 
                 please call us at the number provided in your order email.
               </p>
             </div>

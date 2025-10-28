@@ -55,7 +55,7 @@ export default function AllergensPage() {
               <h3 className="font-semibold text-yellow-800 mb-2">Need Help?</h3>
               <p className="text-yellow-700">
                 If you have specific dietary requirements or allergies, please call us 
-                at the number provided on our contact page, and we'll be happy to help 
+                at the number provided on our contact page, and we&apos;ll be happy to help 
                 you choose suitable menu items.
               </p>
             </div>

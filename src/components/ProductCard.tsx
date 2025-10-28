@@ -31,12 +31,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
 
-  const minPrice = Math.min(...product.variants.map(v => v.price));
-  const maxPrice = Math.max(...product.variants.map(v => v.price));
-  const priceRange = minPrice === maxPrice 
-    ? `£${(minPrice / 100).toFixed(2)}`
-    : `£${(minPrice / 100).toFixed(2)} - £${(maxPrice / 100).toFixed(2)}`;
-
   const handleAddToCart = async () => {
     setIsAdding(true);
     

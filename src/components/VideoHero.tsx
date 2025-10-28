@@ -25,19 +25,23 @@ export default function VideoHero() {
 
   return (
     <section className="relative h-[80vh] md:h-[90vh] w-full overflow-hidden bg-black">
-      {/* Video Background */}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover"
-        playsInline
-        muted
-        autoPlay
-        loop
-        poster="/video/hero-poster.jpg"
-      >
-        <source src="/video/hero.webm" type="video/webm" />
-        <source src="/video/hero.mp4" type="video/mp4" />
-      </video>
+      {/* Video Container */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
+          playsInline
+          muted
+          autoPlay
+          loop
+          controls={false}
+          poster="/video/hero-poster.jpg"
+        >
+          <source src="/video/hero.webm" type="video/webm" />
+          <source src="/video/hero.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
 
       {/* Fallback background if video doesn't load */}
       {!isVideoLoaded && (
@@ -49,9 +53,9 @@ export default function VideoHero() {
         </div>
       )}
 
-      {/* Dark overlay gradient with orange accent */}
+      {/* Dark overlay gradient with yellow accent */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/40" />
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-900/20 via-transparent to-orange-900/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-yellow-900/20 via-transparent to-yellow-900/20" />
 
       {/* Content */}
       <div className="absolute inset-0 flex items-center justify-center">

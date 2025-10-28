@@ -65,7 +65,7 @@ export default function AboutVideoSection() {
             </p>
             <p>
               From our signature Kabuli Pilau to our sizzling Karahi dishes, every meal 
-              is prepared with love, care, and the finest ingredients. We're proud to 
+              is prepared with love, care, and the finest ingredients. We&apos;re proud to 
               serve our community with halal-certified food that brings people together.
             </p>
           </div>

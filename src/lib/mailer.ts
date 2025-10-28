@@ -42,7 +42,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 // Customer receipt email
-export async function sendCustomerReceipt(order: any): Promise<boolean> {
+export async function sendCustomerReceipt(order: {id: string; customerName: string; customerEmail: string; items: Array<{name: string; quantity: number; price: number}>; total: number; fulfilment: string; createdAt?: Date; slotStart?: Date}): Promise<boolean> {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #ea580c;">Nomad Stop - Order Confirmation</h1>
@@ -53,13 +53,13 @@ export async function sendCustomerReceipt(order: any): Promise<boolean> {
       
       <h2>Order Details</h2>
       <p><strong>Order Number:</strong> ${order.id}</p>
-      <p><strong>Order Time:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+      <p><strong>Order Time:</strong> ${order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</p>
       <p><strong>Fulfilment:</strong> ${order.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
       ${order.slotStart ? `<p><strong>Time Slot:</strong> ${new Date(order.slotStart).toLocaleString()}</p>` : ''}
       
       <h3>Items Ordered</h3>
       <ul>
-        ${order.items.map((item: any) => `
+        ${order.items.map((item: {name: string; quantity: number; price: number}) => `
           <li>${item.name} x${item.quantity} - £${(item.price / 100).toFixed(2)}</li>
         `).join('')}
       </ul>
@@ -80,7 +80,7 @@ export async function sendCustomerReceipt(order: any): Promise<boolean> {
 }
 
 // Kitchen ticket email
-export async function sendKitchenTicket(order: any): Promise<boolean> {
+export async function sendKitchenTicket(order: {id: string; customerName: string; customerPhone: string; items: Array<{name: string; quantity: number; price: number; allergens?: string}>; fulfilment: string; notes?: string; slotStart?: Date; total: number}): Promise<boolean> {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #ea580c;">NEW ORDER - Kitchen Ticket</h1>
@@ -93,7 +93,7 @@ export async function sendKitchenTicket(order: any): Promise<boolean> {
       
       <h3>Items to Prepare</h3>
       <ul>
-        ${order.items.map((item: any) => `
+        ${order.items.map((item: {name: string; quantity: number; price: number; allergens?: string}) => `
           <li>${item.name} x${item.quantity}</li>
           ${item.allergens ? `<small>Allergens: ${item.allergens}</small>` : ''}
         `).join('')}
@@ -114,7 +114,7 @@ export async function sendKitchenTicket(order: any): Promise<boolean> {
 }
 
 // Order status change notification to admin
-export async function sendAdminNotification(order: any, oldStatus: string, newStatus: string): Promise<boolean> {
+export async function sendAdminNotification(order: {id: string; customerName: string; customerPhone: string; customerEmail?: string; items: Array<{name: string; quantity: number; price: number}>; total: number; fulfilment: string}, oldStatus: string, newStatus: string): Promise<boolean> {
   const statusMessages: { [key: string]: string } = {
     preparing: 'The order has been marked as preparing',
     ready: 'The order has been marked as ready',
@@ -137,7 +137,7 @@ export async function sendAdminNotification(order: any, oldStatus: string, newSt
       </div>
       <h3>Items</h3>
       <ul>
-        ${order.items.map((item: any) => `
+        ${order.items.map((item: {name: string; quantity: number; price: number}) => `
           <li>${item.name} x${item.quantity} - £${(item.price / 100).toFixed(2)}</li>
         `).join('')}
       </ul>

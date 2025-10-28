@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     // Create order in database
     const order = await prisma.order.create({
       data: {
-        status: 'pending',
+        status: 'payment_authorized',
         fulfilment: orderData.fulfilment,
         customerName: orderData.customer.name,
         customerPhone: orderData.customer.phone,
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         serviceFee: 0, // No service fee currently
         total: orderData.total + (orderData.fulfilment === 'delivery' ? 299 : 0) + Math.round(orderData.total * (orderData.tipPercent / 100)),
         items: {
-          create: orderData.items.map((item: any) => ({
+          create: orderData.items.map((item: {id: string; name: string; price: number; quantity: number; allergens?: string}) => ({
             sku: item.id,
             name: item.name,
             price: item.price,

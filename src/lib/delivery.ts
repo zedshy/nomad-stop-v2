@@ -12,7 +12,7 @@ export function validatePostcode(postcode: string): DeliveryInfo {
   // Extract the first part of the postcode (e.g., "TW18" from "TW18 4PD")
   const postcodePrefix = postcode.split(' ')[0].toUpperCase();
   
-  const isInDeliveryArea = config.delivery.postcodes.includes(postcodePrefix);
+  const isInDeliveryArea = config.delivery.postcodes.includes(postcodePrefix as 'TW18' | 'TW19' | 'TW15');
   
   if (!isInDeliveryArea) {
     return {

@@ -28,7 +28,7 @@ export default function AboutPage() {
               </p>
               
               <p className="text-lg leading-relaxed mb-8">
-                We're proud to be halal-certified, ensuring that every ingredient meets the highest 
+                We&apos;re proud to be halal-certified, ensuring that every ingredient meets the highest 
                 standards of quality and authenticity. Our commitment to fresh, locally-sourced 
                 ingredients means you can taste the difference in every bite.
               </p>

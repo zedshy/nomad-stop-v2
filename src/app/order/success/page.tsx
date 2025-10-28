@@ -14,7 +14,7 @@ export default function OrderSuccessPage() {
               Order Confirmed!
             </h1>
             <p className="text-lg text-gray-600">
-              Thank you for your order. We'll start preparing your delicious meal right away.
+              Thank you for your order. We&apos;ll start preparing your delicious meal right away.
             </p>
           </div>
 
@@ -40,7 +40,7 @@ export default function OrderSuccessPage() {
 
           <div className="space-y-4">
             <p className="text-gray-600">
-              You'll receive a confirmation email shortly with your order details and estimated pickup/delivery time.
+              You&apos;ll receive a confirmation email shortly with your order details and estimated pickup/delivery time.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

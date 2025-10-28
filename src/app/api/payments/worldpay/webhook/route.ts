@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Update payment status based on webhook
-    const updateData: any = {
-      status: webhookData.status,
+    const updateData: {status: 'authorized' | 'captured' | 'voided' | 'failed'; capturedAt?: Date} = {
+      status: webhookData.status as 'authorized' | 'captured' | 'voided' | 'failed',
     };
 
     if (webhookData.status === 'captured') {

@@ -11,7 +11,6 @@ export interface TimeSlot {
 export function generateTimeSlots(): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const now = new Date();
-  const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
   
   // Start from next available slot (current time + prep time)

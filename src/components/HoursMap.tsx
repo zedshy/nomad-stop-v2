@@ -1,8 +1,6 @@
 import { config } from '@/lib/config';
 
 export default function HoursMap() {
-  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY'}&q=${encodeURIComponent(config.restaurant.address)}`;
-
   return (
     <section id="hours-location" className="py-16 bg-gray-900">
       <div className="container mx-auto px-4">
@@ -24,7 +22,7 @@ export default function HoursMap() {
               
               <div className="mt-6 p-4 bg-yellow-900/20 rounded-lg">
                 <p className="text-sm text-gray-300">
-                  <strong>Note:</strong> We're open late every day! Perfect for late-night cravings.
+                  <strong>Note:</strong> We&apos;re open late every day! Perfect for late-night cravings.
                 </p>
               </div>
             </div>
