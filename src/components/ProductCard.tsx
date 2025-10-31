@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCartStore } from '@/stores/cart';
 import { useState } from 'react';
 import { Check, ShoppingCart } from 'lucide-react';
@@ -30,6 +38,18 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleAddToCartClick = () => {
+    // If product has variants, open dialog. Otherwise, add directly
+    if (product.variants.length > 1) {
+      // Reset to first variant when opening dialog
+      setSelectedVariant(product.variants[0]);
+      setIsDialogOpen(true);
+    } else {
+      handleAddToCart();
+    }
+  };
 
   const handleAddToCart = async () => {
     setIsAdding(true);
@@ -43,11 +63,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     });
 
     setAdded(true);
+    setIsDialogOpen(false);
     setTimeout(() => {
       setAdded(false);
       setIsAdding(false);
     }, 2000);
   };
+
+  // For products without variants, show the first variant's price
+  const displayPrice = product.variants[0]?.price || 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow bg-gray-800 border-gray-700">
@@ -58,7 +82,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               {product.name}
             </h3>
             {product.popular && (
-              <Badge className="bg-yellow-600 text-white">
+              <Badge className="bg-amber-600 text-white" style={{backgroundColor: '#FFD500'}}>
                 Popular
               </Badge>
             )}
@@ -71,32 +95,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           </p>
         </div>
 
-        {/* Variant Selector for products with multiple variants */}
-        {product.variants.length > 1 && (
-          <div className="mb-4">
-            <label className="text-sm text-gray-300 mb-2 block">Size:</label>
-            <div className="flex flex-wrap gap-2">
-              {product.variants.map((variant) => (
-                <button
-                  key={variant.id}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    selectedVariant.id === variant.id
-                      ? 'bg-yellow-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {variant.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* Price Display - Show price range if multiple variants, otherwise single price */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-bold text-yellow-600">
-            £{(selectedVariant.price / 100).toFixed(2)}
-          </span>
+          {product.variants.length > 1 ? (
+            <span className="text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
+              From £{(Math.min(...product.variants.map(v => v.price)) / 100).toFixed(2)}
+            </span>
+          ) : (
+            <span className="text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
+              £{(displayPrice / 100).toFixed(2)}
+            </span>
+          )}
           {product.allergens && (
             <span className="text-xs text-gray-400">
               {product.allergens}
@@ -109,15 +118,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             className={`flex-1 transition-all duration-300 ${
               added 
                 ? 'bg-green-600 hover:bg-green-700 text-white' 
-                : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                : 'bg-amber-600 hover:bg-amber-700 text-black font-semibold'
             }`}
-            onClick={handleAddToCart}
+            style={!added ? {backgroundColor: '#FFD500'} : {}}
+            onClick={handleAddToCartClick}
             disabled={isAdding}
           >
             {isAdding ? (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Adding...
+                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-black">Adding...</span>
               </div>
             ) : added ? (
               <div className="flex items-center gap-2">
@@ -132,12 +142,65 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </Button>
           <Link href={`/menu#${product.slug}`}>
-            <Button variant="outline" className="border-yellow-600 text-yellow-400 hover:bg-yellow-600 hover:text-white">
+            <Button variant="outline" className="border-amber-600 text-black hover:bg-amber-600 hover:text-black font-semibold" style={{borderColor: '#FFD500'}}>
               Details
             </Button>
           </Link>
         </div>
       </CardContent>
+
+      {/* Size Selection Dialog for products with variants */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Select Size
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Choose your preferred size for {product.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="grid grid-cols-2 gap-3">
+              {product.variants.map((variant) => (
+                <button
+                  key={variant.id}
+                  onClick={() => setSelectedVariant(variant)}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    selectedVariant.id === variant.id
+                      ? 'border-amber-600 bg-amber-600/20 text-white'
+                      : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                  }`}
+                  style={selectedVariant.id === variant.id ? {borderColor: '#FFD500', backgroundColor: 'rgba(255, 213, 0, 0.2)'} : {}}
+                >
+                  <div className="font-semibold text-lg mb-1">{variant.name}</div>
+                  <div className="text-amber-600 font-bold" style={{color: '#FFD500'}}>
+                    £{(variant.price / 100).toFixed(2)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddToCart}
+              className="bg-amber-600 hover:bg-amber-700 text-black font-semibold"
+              style={{backgroundColor: '#FFD500'}}
+            >
+              Add to Cart
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

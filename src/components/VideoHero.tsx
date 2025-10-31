@@ -24,7 +24,7 @@ export default function VideoHero() {
   }, []);
 
   return (
-    <section className="relative h-[80vh] md:h-[90vh] w-full overflow-hidden bg-black">
+    <section className="relative h-[70vh] sm:h-[80vh] md:h-[90vh] w-full overflow-hidden bg-black pt-20 md:pt-24">
       {/* Video Container */}
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         <video
@@ -46,32 +46,31 @@ export default function VideoHero() {
       {/* Fallback background if video doesn't load */}
       {!isVideoLoaded && (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-yellow-600/5 rounded-full blur-3xl"></div>
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" style={{backgroundColor: 'rgba(255, 213, 0, 0.03)'}}></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-amber-600/3 rounded-full blur-3xl" style={{backgroundColor: 'rgba(255, 213, 0, 0.015)'}}></div>
           </div>
         </div>
       )}
 
-      {/* Dark overlay gradient with yellow accent */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/40" />
-      <div className="absolute inset-0 bg-gradient-to-r from-yellow-900/20 via-transparent to-yellow-900/20" />
+      {/* Dark overlay gradient for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/30" />
 
       {/* Content */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center text-white px-4 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 leading-tight">
             Authentic Afghan Flavours,
             <br />
-            <span className="text-yellow-400">Served Till Late</span>
+            <span className="text-amber-400" style={{color: '#FFE033'}}>Served Till Late</span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 text-gray-200">
+          <p className="text-lg sm:text-xl md:text-2xl mb-8 text-gray-200">
             Order direct, save more, taste more.
           </p>
           <Link href="/menu">
             <Button
               size="lg"
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-4 text-lg font-semibold shadow-lg"
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg" style={{backgroundColor: '#FFD500'}}
             >
               View Menu
             </Button>
@@ -92,7 +91,7 @@ export default function VideoHero() {
           aria-label="Scroll to popular dishes"
         >
           <svg
-            className="w-6 h-6 text-yellow-400 hover:text-yellow-300 transition-colors"
+            className="w-6 h-6 text-amber-400 hover:text-amber-300 transition-colors" style={{color: '#FFE033'}}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

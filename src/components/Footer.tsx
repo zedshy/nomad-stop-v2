@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Restaurant Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-yellow-400">Nomad Stop</h3>
+            <h3 className="text-xl font-bold mb-4 text-amber-400" style={{color: '#FFE033'}}>Nomad Stop</h3>
             <p className="text-gray-300 mb-2">{config.restaurant.address}</p>
             <p className="text-gray-300">
               Open daily {config.hours.open}–{config.hours.close}

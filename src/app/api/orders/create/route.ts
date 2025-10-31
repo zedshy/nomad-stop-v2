@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { parseTimeSlot } from '@/lib/slots';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
     const orderData = await request.json();
+    
+    // Parse time slot to get proper dates (handles today/tomorrow automatically)
+    let slotStart: Date | null = null;
+    let slotEnd: Date | null = null;
+    
+    if (orderData.slot) {
+      const parsed = parseTimeSlot(orderData.slot);
+      slotStart = parsed.start;
+      slotEnd = parsed.end;
+    }
     
     // Create order in database
     const order = await prisma.order.create({
@@ -18,8 +29,8 @@ export async function POST(request: NextRequest) {
         addressLine1: orderData.address?.line1 || null,
         city: orderData.address?.city || null,
         postcode: orderData.address?.postcode || null,
-        slotStart: orderData.slot ? new Date(`2024-01-01T${orderData.slot.split('-')[0]}:00`) : null,
-        slotEnd: orderData.slot ? new Date(`2024-01-01T${orderData.slot.split('-')[1]}:00`) : null,
+        slotStart,
+        slotEnd,
         subtotal: orderData.total,
         deliveryFee: orderData.fulfilment === 'delivery' ? 299 : 0,
         tip: Math.round(orderData.total * (orderData.tipPercent / 100)),

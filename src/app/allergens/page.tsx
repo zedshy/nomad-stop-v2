@@ -28,9 +28,9 @@ export default function AllergensPage() {
                 </p>
               </div>
               
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-yellow-800 mb-2">Nuts</h3>
-                <p className="text-sm text-yellow-700">
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-amber-800 mb-2">Nuts</h3>
+                <p className="text-sm text-amber-700">
                   Present in: Baklava, some desserts, and certain rice dishes.
                 </p>
               </div>
@@ -51,9 +51,9 @@ export default function AllergensPage() {
               <li>If you have severe allergies, please speak to our staff before ordering.</li>
             </ul>
 
-            <div className="bg-yellow-50 p-6 rounded-lg">
-              <h3 className="font-semibold text-yellow-800 mb-2">Need Help?</h3>
-              <p className="text-yellow-700">
+            <div className="bg-amber-50 p-6 rounded-lg">
+              <h3 className="font-semibold text-amber-800 mb-2">Need Help?</h3>
+              <p className="text-amber-700">
                 If you have specific dietary requirements or allergies, please call us 
                 at the number provided on our contact page, and we&apos;ll be happy to help 
                 you choose suitable menu items.

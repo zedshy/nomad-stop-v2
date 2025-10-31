@@ -3,11 +3,17 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useCartStore } from '@/stores/cart';
 import { Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const cartItems = useCartStore((state) => state.items);
+  
+  // Calculate total item count (sum of all quantities)
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,7 +43,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="text-2xl font-bold text-yellow-600" onClick={closeMobileMenu}>
+          <Link href="/" className="text-2xl font-bold text-amber-500" onClick={closeMobileMenu} style={{color: '#FFE033'}}>
             Nomad Stop
           </Link>
 
@@ -45,20 +51,27 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
-              className="text-white hover:text-yellow-400 transition-colors"
+              className="text-white hover:text-amber-400 transition-colors"
+              style={{'--tw-text-opacity': '1'} as React.CSSProperties}
             >
               Home
             </Link>
             <Link
               href="/menu"
-              className="text-white hover:text-yellow-400 transition-colors"
+              className="text-white hover:text-amber-400 transition-colors"
+              style={{'--tw-text-opacity': '1'} as React.CSSProperties}
             >
               Menu
             </Link>
-            <Link href="/cart">
-              <Button variant="outline" size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600 hover:border-yellow-700">
+            <Link href="/cart" className="relative">
+              <Button variant="outline" size="sm" className="bg-amber-600 hover:bg-amber-700 text-black font-semibold border-amber-600 hover:border-amber-700" style={{backgroundColor: '#FFD500', borderColor: '#FFD500'}}>
                 Cart
               </Button>
+              {cartItemCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 bg-white text-amber-600 border-amber-600 font-bold min-w-[20px] h-5 flex items-center justify-center px-1.5" style={{color: '#FFD500', borderColor: '#FFD500'}}>
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </Badge>
+              )}
             </Link>
           </div>
 
@@ -67,7 +80,7 @@ export default function Navbar() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600 hover:border-yellow-700"
+              className="bg-amber-600 hover:bg-amber-700 text-white border-amber-600 hover:border-amber-700" style={{backgroundColor: '#FFD500', borderColor: '#FFD500'}}
               onClick={toggleMobileMenu}
             >
               {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -77,31 +90,36 @@ export default function Navbar() {
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-black/95 backdrop-blur-md shadow-lg border-t border-gray-700">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-black/95 backdrop-blur-md shadow-lg border-t border-gray-700 z-50">
             <div className="container mx-auto px-4 py-4">
               <div className="flex flex-col space-y-4">
                 <Link
                   href="/"
-                  className="text-white hover:text-yellow-400 transition-colors py-2"
+                  className="text-white hover:text-amber-400 transition-colors py-2"
                   onClick={closeMobileMenu}
                 >
                   Home
                 </Link>
                 <Link
                   href="/menu"
-                  className="text-white hover:text-yellow-400 transition-colors py-2"
+                  className="text-white hover:text-amber-400 transition-colors py-2"
                   onClick={closeMobileMenu}
                 >
                   Menu
                 </Link>
-                <Link href="/cart" onClick={closeMobileMenu}>
+                <Link href="/cart" onClick={closeMobileMenu} className="relative">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600 hover:border-yellow-700"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-black font-semibold border-amber-600 hover:border-amber-700" style={{backgroundColor: '#FFD500', borderColor: '#FFD500'}}
                   >
                     Cart
                   </Button>
+                  {cartItemCount > 0 && (
+                    <Badge className="absolute -top-2 -right-2 bg-white text-amber-600 border-amber-600 font-bold min-w-[20px] h-5 flex items-center justify-center px-1.5" style={{color: '#FFD500', borderColor: '#FFD500'}}>
+                      {cartItemCount > 99 ? '99+' : cartItemCount}
+                    </Badge>
+                  )}
                 </Link>
               </div>
             </div>

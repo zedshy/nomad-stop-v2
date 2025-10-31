@@ -1,9 +1,22 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useCartStore } from '@/stores/cart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function OrderSuccessPage() {
+  const { items, clear } = useCartStore();
+
+  // Safety check: Clear cart if it still has items (shouldn't happen, but ensures cart is empty)
+  useEffect(() => {
+    if (items.length > 0) {
+      clear();
+    }
+  }, [items.length, clear]);
+
   return (
     <main className="py-16">
       <div className="container mx-auto px-4">
@@ -50,7 +63,7 @@ export default function OrderSuccessPage() {
                 </Button>
               </Link>
               <Link href="/">
-                <Button className="bg-yellow-600 hover:bg-yellow-700">
+                <Button className="bg-amber-600 hover:bg-amber-700 text-black font-semibold" style={{backgroundColor: '#FFD500'}}>
                   Back to Home
                 </Button>
               </Link>

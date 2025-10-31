@@ -17,13 +17,13 @@ export default async function PopularProducts() {
   const products = await getPopularProducts();
 
   return (
-    <section id="popular-dishes" className="py-16 bg-black">
+    <section id="popular-dishes" className="py-16 bg-black pt-20 md:pt-24">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
             Popular Dishes
           </h2>
-          <p className="text-lg text-gray-300">
+          <p className="text-base sm:text-lg text-gray-300">
             Customer favorites that keep them coming back
           </p>
         </div>
@@ -37,7 +37,7 @@ export default async function PopularProducts() {
         <div className="text-center mt-12">
           <a
             href="/menu"
-            className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+            className="inline-block bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors" style={{backgroundColor: '#FFD500'}}
           >
             View Full Menu
           </a>

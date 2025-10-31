@@ -29,6 +29,10 @@ interface CartStore {
     end: string;
   } | null;
   tipPercent: number;
+  promoCode: {
+    code: string;
+    discount: number;
+  } | null;
   
   // Actions
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
@@ -40,12 +44,14 @@ interface CartStore {
   setAddress: (address: Partial<CartStore['address']>) => void;
   setSlot: (slot: CartStore['slot']) => void;
   setTipPercent: (tipPercent: number) => void;
+  setPromoCode: (promoCode: CartStore['promoCode']) => void;
   
-  // Selectors
-  subtotal: number;
-  deliveryFee: number;
-  tip: number;
-  total: number;
+  // Computed values
+  getSubtotal: () => number;
+  getDeliveryFee: () => number;
+  getTip: () => number;
+  getDiscount: () => number;
+  getTotal: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -65,6 +71,7 @@ export const useCartStore = create<CartStore>()(
       },
       slot: null,
       tipPercent: 0,
+      promoCode: null,
 
       addItem: (item) => {
         const items = get().items;
@@ -115,6 +122,7 @@ export const useCartStore = create<CartStore>()(
           address: { line1: '', city: '', postcode: '' },
           slot: null,
           tipPercent: 0,
+          promoCode: null,
         });
       },
 
@@ -142,16 +150,21 @@ export const useCartStore = create<CartStore>()(
         set({ tipPercent });
       },
 
-      get subtotal() {
+      setPromoCode: (promoCode) => {
+        set({ promoCode });
+      },
+
+      getSubtotal: () => {
         return get().items.reduce(
           (sum, item) => sum + item.price * item.quantity,
           0
         );
       },
 
-      get deliveryFee() {
-        const { fulfilment, subtotal } = get();
-        if (fulfilment === 'pickup') return 0;
+      getDeliveryFee: () => {
+        const state = get();
+        const subtotal = state.getSubtotal();
+        if (state.fulfilment === 'pickup') return 0;
         
         // Free delivery over £25
         if (subtotal >= 2500) return 0;
@@ -160,14 +173,24 @@ export const useCartStore = create<CartStore>()(
         return 299;
       },
 
-      get tip() {
-        const { subtotal, tipPercent } = get();
-        return Math.round(subtotal * (tipPercent / 100));
+      getTip: () => {
+        const state = get();
+        const subtotal = state.getSubtotal();
+        return Math.round(subtotal * (state.tipPercent / 100));
       },
 
-      get total() {
-        const { subtotal, deliveryFee, tip } = get();
-        return subtotal + deliveryFee + tip;
+      getDiscount: () => {
+        const state = get();
+        return state.promoCode?.discount || 0;
+      },
+
+      getTotal: () => {
+        const state = get();
+        const subtotal = state.getSubtotal();
+        const deliveryFee = state.getDeliveryFee();
+        const tip = state.getTip();
+        const discount = state.getDiscount();
+        return subtotal + deliveryFee + tip - discount;
       },
     }),
     {
@@ -179,6 +202,7 @@ export const useCartStore = create<CartStore>()(
         address: state.address,
         slot: state.slot,
         tipPercent: state.tipPercent,
+        promoCode: state.promoCode,
       }),
     }
   )

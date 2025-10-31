@@ -1,63 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { capture } from '@/lib/worldpay';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { worldpayRef } = await request.json();
+    const orderId = params.id;
 
-    if (!worldpayRef) {
+    if (!orderId) {
       return NextResponse.json(
-        { error: 'Worldpay reference is required' },
+        { error: 'Order ID is required' },
         { status: 400 }
       );
     }
 
-    // Get payment record
-    const payment = await prisma.payment.findFirst({
-      where: { worldpayRef },
-      include: { order: true },
+    // Get order with items
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+      },
     });
 
-    if (!payment) {
+    if (!order) {
       return NextResponse.json(
-        { error: 'Payment not found' },
+        { error: 'Order not found' },
         { status: 404 }
       );
     }
 
-    if (payment.status !== 'authorized') {
+    if (order.status === 'captured') {
       return NextResponse.json(
-        { error: 'Payment is not in authorized state' },
+        { error: 'Order is already accepted' },
         { status: 400 }
       );
     }
 
-    // Capture payment
-    const captureResult = await capture(worldpayRef, payment.amount);
-
-    if (!captureResult.success) {
-      return NextResponse.json(
-        { error: captureResult.error || 'Capture failed' },
-        { status: 500 }
-      );
-    }
-
-    // Update payment and order status
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'captured',
-        capturedAt: captureResult.capturedAt,
-      },
-    });
-
-    // Update order status
+    // Update order status to captured (accepted)
     const updatedOrder = await prisma.order.update({
-      where: { id: payment.orderId },
+      where: { id: orderId },
       data: {
         status: 'captured',
       },
@@ -96,24 +81,25 @@ export async function POST(request: NextRequest) {
           phone: updatedOrder.customerPhone,
         });
       } catch (emailError) {
-        // Log email error but don't fail the capture
+        // Log email error but don't fail the order acceptance
         console.error('Failed to send order confirmation email:', emailError);
       }
     }
 
     return NextResponse.json({
       success: true,
-      worldpayRef,
-      capturedAt: captureResult.capturedAt,
+      orderId: updatedOrder.id,
+      status: updatedOrder.status,
     });
 
   } catch (error) {
-    console.error('Capture payment error:', error);
+    console.error('Accept order error:', error);
     return NextResponse.json(
-      { error: 'Failed to capture payment' },
+      { error: 'Failed to accept order' },
       { status: 500 }
     );
   } finally {
     await prisma.$disconnect();
   }
 }
+

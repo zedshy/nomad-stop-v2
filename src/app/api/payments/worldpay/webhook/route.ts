@@ -64,10 +64,49 @@ export async function POST(request: NextRequest) {
         break;
     }
 
-    await prisma.order.update({
+    // Update order status
+    const updatedOrder = await prisma.order.update({
       where: { id: payment.orderId },
       data: { status: orderStatus },
+      include: {
+        items: true,
+      },
     });
+
+    // Send confirmation email when order is captured
+    if (webhookData.status === 'captured' && updatedOrder.customerEmail) {
+      try {
+        const orderNumber = `#NS-${updatedOrder.createdAt.getFullYear()}-${updatedOrder.id.slice(0, 8).toUpperCase()}`;
+        
+        await sendOrderConfirmationEmail({
+          orderId: updatedOrder.id,
+          orderNumber,
+          customerName: updatedOrder.customerName,
+          customerEmail: updatedOrder.customerEmail,
+          items: updatedOrder.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          subtotal: updatedOrder.subtotal,
+          deliveryFee: updatedOrder.deliveryFee,
+          tip: updatedOrder.tip,
+          total: updatedOrder.total,
+          fulfilment: updatedOrder.fulfilment,
+          slotStart: updatedOrder.slotStart || undefined,
+          slotEnd: updatedOrder.slotEnd || undefined,
+          address: updatedOrder.addressLine1 ? {
+            line1: updatedOrder.addressLine1,
+            city: updatedOrder.city || '',
+            postcode: updatedOrder.postcode || '',
+          } : undefined,
+          phone: updatedOrder.customerPhone,
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the webhook
+        console.error('Failed to send order confirmation email:', emailError);
+      }
+    }
 
     // Store webhook payload for audit
     await prisma.payment.update({

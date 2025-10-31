@@ -49,14 +49,14 @@ export default function RefundsPage() {
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us for Refunds</h2>
-            <div className="bg-yellow-50 p-6 rounded-lg">
-              <h3 className="font-semibold text-yellow-800 mb-2">How to Request a Refund</h3>
-              <ul className="list-disc list-inside space-y-2 text-yellow-700">
+            <div className="bg-amber-50 p-6 rounded-lg">
+              <h3 className="font-semibold text-amber-800 mb-2">How to Request a Refund</h3>
+              <ul className="list-disc list-inside space-y-2 text-amber-700">
                 <li>Call us at the number provided on our contact page</li>
                 <li>Email us with your order number and details</li>
                 <li>Speak to our staff if you&apos;re picking up in person</li>
               </ul>
-              <p className="text-yellow-700 mt-4">
+              <p className="text-amber-700 mt-4">
                 <strong>Important:</strong> Please have your order number ready when contacting us.
               </p>
             </div>

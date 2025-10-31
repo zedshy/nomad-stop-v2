@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validatePostcode } from '@/lib/delivery';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,26 +12,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract the first part of the postcode (e.g., "TW18" from "TW18 4PD")
-    const postcodePrefix = postcode.split(' ')[0].toUpperCase();
+    // Use the new distance-based validation with Postcodes.io
+    const deliveryInfo = await validatePostcode(postcode);
     
-    // Valid delivery postcodes
-    const validPostcodes = ['TW18', 'TW19', 'TW15'];
-    const isAvailable = validPostcodes.includes(postcodePrefix);
-    
-    if (!isAvailable) {
+    if (!deliveryInfo.isAvailable) {
       return NextResponse.json({
         available: false,
-        message: `Sorry, we don't deliver to ${postcodePrefix}. We currently deliver to TW18, TW19, and TW15 postcodes only.`
+        message: deliveryInfo.message,
+        distance: deliveryInfo.distance,
       });
     }
 
     return NextResponse.json({
       available: true,
-      postcode: postcodePrefix,
-      message: `Great! We deliver to ${postcodePrefix}. Delivery fee is £2.99, free on orders over £25.`,
-      deliveryFee: 299,
-      freeOver: 2500
+      postcode: postcode,
+      message: deliveryInfo.message,
+      distance: deliveryInfo.distance,
+      deliveryFee: deliveryInfo.fee,
+      freeOver: deliveryInfo.freeOver,
+      eta: deliveryInfo.eta,
     });
 
   } catch (error) {

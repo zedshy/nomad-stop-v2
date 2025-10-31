@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCartStore } from '@/stores/cart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +9,24 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
+import { generateTimeSlots } from '@/lib/slots';
+
+interface PostcodeValidation {
+  isValid: boolean | null; // null = not checked yet, true = valid, false = invalid
+  isLoading: boolean;
+  message: string;
+  distance?: number;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postcodeValidation, setPostcodeValidation] = useState<PostcodeValidation>({
+    isValid: null,
+    isLoading: false,
+    message: '',
+  });
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -24,24 +37,192 @@ export default function CheckoutPage() {
     postcode: '',
     slot: '',
     tipPercent: 0,
+    promoCode: '',
   });
 
-  const { items, subtotal, deliveryFee, tip, total, setCustomer, setAddress, setSlot, setTipPercent, setFulfilment } = useCartStore();
+  const [promoCodeValidation, setPromoCodeValidation] = useState<{
+    isValid: boolean | null;
+    isLoading: boolean;
+    message: string;
+    discount: number;
+  }>({
+    isValid: null,
+    isLoading: false,
+    message: '',
+    discount: 0,
+  });
+
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setTipPercent, setFulfilment, setPromoCode, promoCode, clear, tipPercent, fulfilment } = useCartStore();
+  
+  // Calculate totals - Zustand tracks items, tipPercent, fulfilment, and promoCode
+  // When these change, the component re-renders and totals are recalculated
+  const subtotal = getSubtotal();
+  const deliveryFee = getDeliveryFee();
+  const tip = getTip();
+  const discount = getDiscount();
+  const total = getTotal();
+
+  // Load promo code from store if it exists
+  useEffect(() => {
+    if (promoCode && !formData.promoCode) {
+      setFormData(prev => ({ ...prev, promoCode: promoCode.code }));
+      setPromoCodeValidation({
+        isValid: true,
+        isLoading: false,
+        message: 'Promo code applied',
+        discount: promoCode.discount,
+      });
+    }
+  }, [promoCode]);
+  const [slotRefreshKey, setSlotRefreshKey] = useState(0);
+  
+  // Generate time slots dynamically based on current time
+  // Regenerate when step changes to 3 or when explicitly refreshed
+  const timeSlots = useMemo(() => {
+    if (step === 3) {
+      return generateTimeSlots().filter(slot => slot.available);
+    }
+    return [];
+  }, [step, slotRefreshKey]);
+  
+  // Refresh slots when entering step 3
+  useEffect(() => {
+    if (step === 3) {
+      setSlotRefreshKey(prev => prev + 1);
+    }
+  }, [step]);
+
+  // Check postcode when it changes (only for delivery)
+  useEffect(() => {
+    if (formData.fulfilment === 'delivery' && formData.postcode.trim()) {
+      const checkPostcode = async () => {
+        const postcode = formData.postcode.trim();
+        // Only check if postcode looks valid (at least 5 characters)
+        if (postcode.length >= 5) {
+          setPostcodeValidation({ isValid: null, isLoading: true, message: '' });
+          
+          try {
+            const response = await fetch('/api/check-postcode', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ postcode }),
+            });
+            
+            const data = await response.json();
+            
+            if (data.available) {
+              setPostcodeValidation({
+                isValid: true,
+                isLoading: false,
+                message: data.message,
+                distance: data.distance,
+              });
+            } else {
+              setPostcodeValidation({
+                isValid: false,
+                isLoading: false,
+                message: data.message,
+                distance: data.distance,
+              });
+            }
+          } catch (error) {
+            console.error('Postcode check error:', error);
+            setPostcodeValidation({
+              isValid: false,
+              isLoading: false,
+              message: 'Unable to verify postcode. Please try again.',
+            });
+          }
+        } else {
+          // Reset validation if postcode is too short
+          setPostcodeValidation({ isValid: null, isLoading: false, message: '' });
+        }
+      };
+
+      // Debounce the API call
+      const timeoutId = setTimeout(checkPostcode, 500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      // Reset validation when switching to pickup or clearing postcode
+      setPostcodeValidation({ isValid: null, isLoading: false, message: '' });
+    }
+  }, [formData.postcode, formData.fulfilment]);
+
+  // Validate promo code when it changes
+  useEffect(() => {
+    if (formData.promoCode.trim()) {
+      const validatePromoCode = async () => {
+        const code = formData.promoCode.trim().toUpperCase();
+        setPromoCodeValidation({ isValid: null, isLoading: true, message: '', discount: 0 });
+        
+        try {
+          const response = await fetch('/api/promo-code/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, subtotal }),
+          });
+
+          const data = await response.json();
+
+          if (data.valid) {
+            setPromoCodeValidation({
+              isValid: true,
+              isLoading: false,
+              message: data.message,
+              discount: data.discount,
+            });
+            setPromoCode({ code: data.promoCode.code, discount: data.discount });
+          } else {
+            setPromoCodeValidation({
+              isValid: false,
+              isLoading: false,
+              message: data.message,
+              discount: 0,
+            });
+            setPromoCode(null);
+          }
+        } catch (error) {
+          console.error('Promo code validation error:', error);
+          setPromoCodeValidation({
+            isValid: false,
+            isLoading: false,
+            message: 'Unable to validate promo code. Please try again.',
+            discount: 0,
+          });
+          setPromoCode(null);
+        }
+      };
+
+      const timeoutId = setTimeout(validatePromoCode, 500);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setPromoCodeValidation({ isValid: null, isLoading: false, message: '', discount: 0 });
+      setPromoCode(null);
+    }
+  }, [formData.promoCode, subtotal, setPromoCode]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validateStep = (stepNumber: number) => {
     switch (stepNumber) {
       case 1:
-        return formData.name.trim() !== '' && formData.phone.trim() !== '';
+        return formData.name.trim() !== '' && 
+               formData.phone.trim() !== '' && 
+               formData.email.trim() !== '' &&
+               isValidEmail(formData.email);
       case 2:
         if (formData.fulfilment === 'delivery') {
           return formData.addressLine1.trim() !== '' && 
                  formData.city.trim() !== '' && 
                  formData.postcode.trim() !== '' &&
-                 validatePostcode(formData.postcode);
+                 postcodeValidation.isValid === true; // Must be validated and valid
         }
         return true;
       case 3:
@@ -51,12 +232,6 @@ export default function CheckoutPage() {
       default:
         return false;
     }
-  };
-
-  const validatePostcode = (postcode: string) => {
-    const validPostcodes = ['TW18', 'TW19', 'TW15'];
-    const postcodePrefix = postcode.toUpperCase().substring(0, 4);
-    return validPostcodes.includes(postcodePrefix);
   };
 
   const handleNext = () => {
@@ -109,6 +284,7 @@ export default function CheckoutPage() {
         } : null,
         slot: formData.slot,
         tipPercent: Number(formData.tipPercent),
+        promoCode: promoCode ? promoCode.code : null,
         total
       };
 
@@ -120,6 +296,8 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         const { orderId } = await response.json();
+        // Clear the cart after successful order submission
+        clear();
         router.push(`/order/pending?oid=${orderId}`);
       } else {
         throw new Error('Failed to create order');
@@ -144,7 +322,7 @@ export default function CheckoutPage() {
               Add some items to your cart before checking out.
             </p>
             <a href="/menu">
-              <Button size="lg" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+              <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-black font-semibold" style={{backgroundColor: '#FFD500'}}>
                 Browse Menu
               </Button>
             </a>
@@ -170,14 +348,15 @@ export default function CheckoutPage() {
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                       step >= stepNumber
-                        ? 'bg-yellow-600 text-white'
+                        ? 'bg-amber-600 text-white'
                         : 'bg-gray-700 text-gray-400'
                     }`}
+                    style={step >= stepNumber ? {backgroundColor: '#FFD500'} : {}}
                   >
                     {stepNumber}
                   </div>
                   {stepNumber < 4 && (
-                    <div className={`w-16 h-1 mx-2 ${step > stepNumber ? 'bg-yellow-600' : 'bg-gray-700'}`} />
+                    <div className={`w-16 h-1 mx-2 ${step > stepNumber ? 'bg-amber-600' : 'bg-gray-700'}`} style={step > stepNumber ? {backgroundColor: '#FFD500'} : {}} />
                   )}
                 </div>
               ))}
@@ -222,14 +401,23 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="email" className="text-white">Email Address</Label>
+                        <Label htmlFor="email" className="text-white">Email Address *</Label>
                         <Input
                           id="email"
                           type="email"
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="bg-gray-700 border-gray-600 text-white"
+                          className={`bg-gray-700 border-gray-600 text-white ${
+                            formData.email && !isValidEmail(formData.email) ? 'border-red-500' : ''
+                          }`}
+                          placeholder="your.email@example.com"
+                          required
                         />
+                        {formData.email && !isValidEmail(formData.email) && (
+                          <p className="text-red-400 text-sm mt-1">
+                            Please enter a valid email address
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -279,13 +467,27 @@ export default function CheckoutPage() {
                               id="postcode"
                               value={formData.postcode}
                               onChange={(e) => handleInputChange('postcode', e.target.value)}
-                              className="bg-gray-700 border-gray-600 text-white"
-                              placeholder="TW18, TW19, or TW15"
+                              className={`bg-gray-700 border-gray-600 text-white ${
+                                postcodeValidation.isValid === false ? 'border-red-500' : 
+                                postcodeValidation.isValid === true ? 'border-green-500' : ''
+                              }`}
+                              placeholder="Enter your postcode"
                               required
                             />
-                            {formData.postcode && !validatePostcode(formData.postcode) && (
+                            {postcodeValidation.isLoading && (
+                              <p className="text-amber-400 text-sm mt-1 flex items-center gap-2" style={{color: '#FFE033'}}>
+                                <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" style={{borderColor: '#FFE033'}}></span>
+                                Checking postcode...
+                              </p>
+                            )}
+                            {postcodeValidation.isValid === true && postcodeValidation.message && (
+                              <p className="text-green-400 text-sm mt-1">
+                                ✓ {postcodeValidation.message}
+                              </p>
+                            )}
+                            {postcodeValidation.isValid === false && postcodeValidation.message && (
                               <p className="text-red-400 text-sm mt-1">
-                                We only deliver to TW18, TW19, and TW15 postcodes
+                                ✗ {postcodeValidation.message}
                               </p>
                             )}
                           </div>
@@ -298,25 +500,84 @@ export default function CheckoutPage() {
                   {step === 3 && (
                     <div className="space-y-4">
                       <Label className="text-white">Select Time Slot</Label>
-                      <Select value={formData.slot} onValueChange={(value) => handleInputChange('slot', value)}>
-                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                          <SelectValue placeholder="Choose a time slot" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-600">
-                          <SelectItem value="12:00-12:15" className="text-white">12:00 - 12:15</SelectItem>
-                          <SelectItem value="12:15-12:30" className="text-white">12:15 - 12:30</SelectItem>
-                          <SelectItem value="12:30-12:45" className="text-white">12:30 - 12:45</SelectItem>
-                          <SelectItem value="12:45-13:00" className="text-white">12:45 - 13:00</SelectItem>
-                          <SelectItem value="13:00-13:15" className="text-white">13:00 - 13:15</SelectItem>
-                          <SelectItem value="13:15-13:30" className="text-white">13:15 - 13:30</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {timeSlots.length === 0 ? (
+                        <p className="text-amber-400 text-sm" style={{color: '#FFE033'}}>
+                          No time slots available at the moment. Please try again later.
+                        </p>
+                      ) : (
+                        <Select value={formData.slot} onValueChange={(value) => handleInputChange('slot', value)}>
+                          <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                            <SelectValue placeholder="Choose a time slot" />
+                          </SelectTrigger>
+                          <SelectContent 
+                            className="bg-gray-800 border-gray-600 max-h-[300px]"
+                          >
+                            {timeSlots.map((slot) => {
+                              const slotValue = `${slot.start}-${slot.end}`;
+                              return (
+                                <SelectItem 
+                                  key={slotValue} 
+                                  value={slotValue} 
+                                  className="text-white"
+                                  disabled={!slot.available}
+                                >
+                                  {slot.start} - {slot.end}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
                   {/* Step 4: Payment */}
                   {step === 4 && (
                     <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="promoCode" className="text-white">Promo Code (Optional)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="promoCode"
+                            value={formData.promoCode}
+                            onChange={(e) => handleInputChange('promoCode', e.target.value.toUpperCase())}
+                            className={`bg-gray-700 border-gray-600 text-white ${
+                              promoCodeValidation.isValid === false ? 'border-red-500' : 
+                              promoCodeValidation.isValid === true ? 'border-green-500' : ''
+                            }`}
+                            placeholder="Enter promo code (e.g., TEST2024)"
+                          />
+                          {promoCodeValidation.isValid && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, promoCode: '' }));
+                                setPromoCode(null);
+                                setPromoCodeValidation({ isValid: null, isLoading: false, message: '', discount: 0 });
+                              }}
+                              className="border-gray-600 text-black bg-white hover:bg-gray-700 hover:text-black font-semibold"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                        {promoCodeValidation.isLoading && (
+                          <p className="text-sm text-gray-400 mt-2">
+                            Validating promo code...
+                          </p>
+                        )}
+                        {promoCodeValidation.isValid === true && promoCodeValidation.message && (
+                          <p className="text-sm text-green-400 mt-2">
+                            ✓ {promoCodeValidation.message} - £{(promoCodeValidation.discount / 100).toFixed(2)} discount applied
+                          </p>
+                        )}
+                        {promoCodeValidation.isValid === false && promoCodeValidation.message && (
+                          <p className="text-sm text-red-400 mt-2">
+                            ✗ {promoCodeValidation.message}
+                          </p>
+                        )}
+                      </div>
                       <div>
                         <Label className="text-white">Tip Amount</Label>
                         <Select value={formData.tipPercent.toString()} onValueChange={(value) => handleInputChange('tipPercent', value)}>
@@ -345,7 +606,7 @@ export default function CheckoutPage() {
                       variant="outline"
                       onClick={handleBack}
                       disabled={step === 1}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                      className="border-gray-600 text-black hover:bg-gray-700 hover:text-black bg-white font-semibold"
                     >
                       Back
                     </Button>
@@ -353,7 +614,8 @@ export default function CheckoutPage() {
                       <Button 
                         onClick={handleNext}
                         disabled={!validateStep(step)}
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        className="bg-amber-600 hover:bg-amber-700 text-black font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed disabled:text-white"
+                        style={{backgroundColor: '#FFD500'}}
                       >
                         Next
                       </Button>
@@ -361,7 +623,8 @@ export default function CheckoutPage() {
                       <Button 
                         onClick={handleSubmit} 
                         disabled={isSubmitting}
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white disabled:bg-gray-600"
+                        className="bg-amber-600 hover:bg-amber-700 text-black font-semibold disabled:bg-gray-600 disabled:text-white"
+                        style={{backgroundColor: '#FFD500'}}
                       >
                         {isSubmitting ? 'Processing...' : 'Place Order'}
                       </Button>
@@ -396,13 +659,19 @@ export default function CheckoutPage() {
                         <span>£{(deliveryFee / 100).toFixed(2)}</span>
                       </div>
                     )}
+                    {discount > 0 && (
+                      <div className="flex justify-between text-green-400">
+                        <span>Discount</span>
+                        <span>-£{(discount / 100).toFixed(2)}</span>
+                      </div>
+                    )}
                     {tip > 0 && (
                       <div className="flex justify-between text-white">
                         <span>Tip</span>
                         <span>£{(tip / 100).toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-yellow-600">
+                    <div className="flex justify-between font-bold text-amber-600" style={{color: '#FFD500'}}>
                       <span>Total</span>
                       <span>£{(total / 100).toFixed(2)}</span>
                     </div>

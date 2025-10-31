@@ -35,7 +35,7 @@ export default function AboutPage() {
             </div>
 
             {/* Hygiene & Halal Notice */}
-            <div className="bg-yellow-50 rounded-lg p-6 mb-8">
+            <div className="bg-amber-50 rounded-lg p-6 mb-8" style={{backgroundColor: '#FFF8DC'}}>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
                 Quality & Standards
               </h3>

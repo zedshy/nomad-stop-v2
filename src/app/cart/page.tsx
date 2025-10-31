@@ -7,7 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export default function CartPage() {
-  const { items, subtotal, deliveryFee, tip, total, clear } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, clear, promoCode } = useCartStore();
+  
+  // Calculate totals - these will update when items change
+  // Zustand tracks items, so when items change, this component re-renders
+  const subtotal = getSubtotal();
+  const deliveryFee = getDeliveryFee();
+  const tip = getTip();
+  const discount = getDiscount();
+  const total = getTotal();
 
   if (items.length === 0) {
     return (
@@ -21,7 +29,7 @@ export default function CartPage() {
               Add some delicious Afghan dishes to get started!
             </p>
             <Link href="/menu">
-              <Button size="lg" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+              <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-black font-semibold" style={{backgroundColor: '#FFD500'}}>
                 Browse Menu
               </Button>
             </Link>
@@ -40,8 +48,8 @@ export default function CartPage() {
           </h1>
 
           {/* Delivery Info Banner */}
-          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
-            <p className="text-sm text-yellow-400">
+          <div className="mb-6 p-4 bg-amber-900/20 border border-amber-600/30 rounded-lg" style={{backgroundColor: 'rgba(255, 213, 0, 0.2)', borderColor: 'rgba(255, 213, 0, 0.3)'}}>
+            <p className="text-sm text-amber-400" style={{color: '#FFE033'}}>
               📍 <strong>Delivery Available:</strong> We deliver to TW18, TW19, and TW15 postcodes. Free delivery on orders over £25!
             </p>
           </div>
@@ -56,10 +64,10 @@ export default function CartPage() {
                       <div className="flex items-start gap-3">
                         <div className="min-w-[2.5rem] flex-shrink-0">
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-lg font-bold text-yellow-600">
+                            <span className="text-lg font-bold text-amber-600" style={{color: '#FFD500'}}>
                               #{index + 1}
                             </span>
-                            <Badge className="bg-yellow-600 text-white text-xs px-2 py-0.5">
+                            <Badge className="bg-amber-600 text-white text-xs px-2 py-0.5" style={{backgroundColor: '#FFD500'}}>
                               ×{item.quantity}
                             </Badge>
                           </div>
@@ -80,7 +88,7 @@ export default function CartPage() {
                                   <p className="text-sm text-gray-300">Add-ons:</p>
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.addons.map((addon, idx) => (
-                                      <Badge key={idx} variant="secondary" className="text-xs bg-yellow-600 text-white">
+                                      <Badge key={idx} variant="secondary" className="text-xs bg-amber-600 text-white" style={{backgroundColor: '#FFD500'}}>
                                         {addon}
                                       </Badge>
                                     ))}
@@ -89,7 +97,7 @@ export default function CartPage() {
                               )}
                             </div>
                             <div className="text-right ml-4">
-                              <p className="font-semibold text-yellow-600 text-xl">
+                              <p className="font-semibold text-amber-600 text-xl" style={{color: '#FFD500'}}>
                                 £{((item.price * item.quantity) / 100).toFixed(2)}
                               </p>
                               {item.quantity > 1 && (
@@ -126,6 +134,12 @@ export default function CartPage() {
                     </div>
                   )}
                   
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount {promoCode && `(${promoCode.code})`}</span>
+                      <span>-£{(discount / 100).toFixed(2)}</span>
+                    </div>
+                  )}
                   {tip > 0 && (
                     <div className="flex justify-between text-white">
                       <span>Tip</span>
@@ -134,7 +148,7 @@ export default function CartPage() {
                   )}
                   
                   <div className="border-t border-gray-600 pt-4">
-                    <div className="flex justify-between font-bold text-lg text-yellow-600">
+                    <div className="flex justify-between font-bold text-lg text-amber-600" style={{color: '#FFD500'}}>
                       <span>Total</span>
                       <span>£{(total / 100).toFixed(2)}</span>
                     </div>
@@ -142,14 +156,14 @@ export default function CartPage() {
 
                   <div className="space-y-3">
                     <Link href="/checkout" className="block">
-                      <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white">
+                      <Button className="w-full bg-amber-600 hover:bg-amber-700 text-black font-semibold" style={{backgroundColor: '#FFD500'}}>
                         Proceed to Checkout
                       </Button>
                     </Link>
                     
                     <Button 
                       variant="outline" 
-                      className="w-full border-red-600 text-red-400 hover:bg-red-600 hover:text-white hover:border-red-600"
+                      className="w-full border-red-600 text-black hover:bg-red-600 hover:text-black hover:border-red-600 bg-white font-semibold"
                       onClick={clear}
                     >
                       Clear Cart
