@@ -11,13 +11,13 @@ datasource db {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String           @unique
   description String?
   category    String
-  popular     Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  popular     Boolean          @default(false)
+  createdAt   DateTime         @default(now())
   variants    ProductVariant[]
   addons      Addon[]
   allergens   String
@@ -36,7 +36,7 @@ model ProductVariant {
 }
 
 model Addon {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   productId String?
   name      String
   price     Int // pence
@@ -46,8 +46,8 @@ model Addon {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  createdAt     DateTime    @default(now())
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now())
   status        OrderStatus
   fulfilment    FulfilmentType
   slotStart     DateTime?
@@ -65,14 +65,14 @@ model Order {
   tip           Int // pence
   serviceFee    Int // pence
   total         Int // pence
-  currency      String      @default("GBP")
+  currency      String         @default("GBP")
   payment       Payment?
 
   @@map("orders")
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   orderId   String
   sku       String
   name      String
@@ -80,7 +80,7 @@ model OrderItem {
   quantity  Int
   addons    Json?
   allergens String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
 }
@@ -122,20 +122,20 @@ enum PaymentStatus {
 }
 
 model PromoCode {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  discountType DiscountType @map("discountType")
-  discountValue Int @map("discountValue") // percentage (0-100) or fixed amount in pence
-  minOrderAmount Int @default(0) @map("minOrderAmount") // minimum order amount in pence
-  maxDiscount Int? @map("maxDiscount") // maximum discount in pence (optional, for percentage discounts)
-  startDate   DateTime @default(now()) @map("startDate")
-  endDate  DateTime @map("endDate") // Required in DB, use far future date for "no expiration"
-  usageLimit  Int? @map("usageLimit") // maximum number of uses (optional)
-  usedCount   Int     @default(0) @map("usedCount")
-  isActive      Boolean  @default(true) @map("isActive")
-  createdAt   DateTime @default(now()) @map("createdAt")
+  id             String       @id @default(cuid())
+  code           String       @unique
+  name           String
+  description    String?
+  discountType   DiscountType @map("discountType")
+  discountValue  Int          @map("discountValue") // percentage (0-100) or fixed amount in pence
+  minOrderAmount Int          @default(0) @map("minOrderAmount") // minimum order amount in pence
+  maxDiscount    Int?         @map("maxDiscount") // maximum discount in pence (optional, for percentage discounts)
+  startDate      DateTime     @default(now()) @map("startDate")
+  endDate        DateTime     @map("endDate") // Required in DB, use far future date for "no expiration"
+  usageLimit     Int?         @map("usageLimit") // maximum number of uses (optional)
+  usedCount      Int          @default(0) @map("usedCount")
+  isActive       Boolean      @default(true) @map("isActive")
+  createdAt      DateTime     @default(now()) @map("createdAt")
 
   @@map("promotions")
 }

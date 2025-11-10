@@ -655,22 +655,6 @@ async function main() {
     },
   });
 
-  const mangoLassi = await prisma.product.create({
-    data: {
-      name: 'Mango Lassi',
-      slug: 'mango-lassi',
-      description: '500ml',
-      category: 'Drinks',
-      allergens: 'Dairy',
-      variants: {
-        create: {
-          name: 'Standard',
-          price: 349, // £3.49
-        },
-      },
-    },
-  });
-
   // Deals
   const nomadsDeal1 = await prisma.product.create({
     data: {

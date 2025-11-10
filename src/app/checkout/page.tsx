@@ -38,6 +38,10 @@ export default function CheckoutPage() {
     slot: '',
     tipPercent: 0,
     promoCode: '',
+    cardName: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvc: '',
   });
 
   const [promoCodeValidation, setPromoCodeValidation] = useState<{
@@ -205,6 +209,28 @@ export default function CheckoutPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleCardNumberChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 19);
+    const formatted = digitsOnly.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+    handleInputChange('cardNumber', formatted);
+  };
+
+  const handleCardExpiryChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 4);
+    let formatted = digitsOnly;
+    if (digitsOnly.length >= 3) {
+      formatted = `${digitsOnly.slice(0, 2)}/${digitsOnly.slice(2, 4)}`;
+    } else if (digitsOnly.length >= 1) {
+      formatted = digitsOnly.slice(0, 2);
+    }
+    handleInputChange('cardExpiry', formatted);
+  };
+
+  const handleCardCvcChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 4);
+    handleInputChange('cardCvc', digitsOnly);
+  };
+
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -229,6 +255,17 @@ export default function CheckoutPage() {
         return formData.slot !== '';
       case 4:
         return true;
+      case 5:
+        // Payment step - basic validation for card fields
+        const sanitizedNumber = formData.cardNumber.replace(/\s+/g, '');
+        const expiryValid = /^\d{2}\/\d{2}$/.test(formData.cardExpiry);
+        const cvcValid = /^[0-9]{3,4}$/.test(formData.cardCvc);
+        return (
+          formData.cardName.trim() !== '' &&
+          sanitizedNumber.length >= 12 &&
+          expiryValid &&
+          cvcValid
+        );
       default:
         return false;
     }
@@ -254,7 +291,7 @@ export default function CheckoutPage() {
         setTipPercent(Number(formData.tipPercent));
       }
       
-      if (step < 4) {
+      if (step < 5) {
         setStep(step + 1);
       }
     }
@@ -272,39 +309,177 @@ export default function CheckoutPage() {
       // Save final data
       setTipPercent(Number(formData.tipPercent));
       
-      // Create order
-      const orderData = {
-        items,
+      const sanitizedCardNumber = formData.cardNumber.replace(/\s+/g, '');
+      const expiryMatch = formData.cardExpiry.match(/^(\d{2})\/(\d{2})$/);
+
+      if (sanitizedCardNumber.length < 12) {
+        throw new Error('Please enter a valid card number.');
+      }
+
+      if (!expiryMatch) {
+        throw new Error('Please enter your card expiry in MM/YY format.');
+      }
+
+      if (!/^[0-9]{3,4}$/.test(formData.cardCvc)) {
+        throw new Error('Please enter a valid CVC.');
+      }
+
+      // Process payment with Worldpay
+      const paymentData = {
+        items: items.map(item => ({
+          id: item.id,
+          name: `${item.name}${item.variant ? ` - ${item.variant}` : ''}`,
+          variant: item.variant,
+          price: item.price,
+          quantity: item.quantity,
+          addons: item.addons || [],
+          allergens: item.allergens || '',
+        })),
         customer: { name: formData.name, phone: formData.phone, email: formData.email },
         fulfilment: formData.fulfilment,
         address: formData.fulfilment === 'delivery' ? {
           line1: formData.addressLine1,
           city: formData.city,
           postcode: formData.postcode
+        } : undefined,
+        slot: formData.slot ? {
+          start: formData.slot.split('-')[0],
+          end: formData.slot.split('-')[1]
         } : null,
-        slot: formData.slot,
         tipPercent: Number(formData.tipPercent),
-        promoCode: promoCode ? promoCode.code : null,
-        total
+        card: {
+          number: sanitizedCardNumber,
+          expiry: formData.cardExpiry,
+          cvc: formData.cardCvc,
+          name: formData.cardName,
+        },
       };
 
-      const response = await fetch('/api/orders/create', {
+      let response;
+      try {
+        response = await fetch('/api/payments/worldpay/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
+          body: JSON.stringify(paymentData),
+          // Add timeout to prevent hanging
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+      } catch (fetchError: any) {
+        // Network error - server might be down or unreachable
+        console.error('Fetch error:', {
+          name: fetchError?.name,
+          message: fetchError?.message,
+          cause: fetchError?.cause,
+          error: fetchError
+        });
+        
+        let errorMsg = 'Network request failed';
+        if (fetchError?.name === 'AbortError' || fetchError?.name === 'TimeoutError') {
+          errorMsg = 'Request timed out. The server is taking too long to respond.';
+        } else if (fetchError?.message) {
+          errorMsg = fetchError.message;
+        } else if (typeof fetchError === 'string') {
+          errorMsg = fetchError;
+        }
+        
+        throw new Error(`Network error: ${errorMsg}. Please check your connection and try again.`);
+      }
 
       if (response.ok) {
         const { orderId } = await response.json();
         // Clear the cart after successful order submission
         clear();
+        setFormData(prev => ({
+          ...prev,
+          cardName: '',
+          cardNumber: '',
+          cardExpiry: '',
+          cardCvc: '',
+        }));
         router.push(`/order/pending?oid=${orderId}`);
       } else {
-        throw new Error('Failed to create order');
+        // Try to parse error response
+        let errorData: any = {};
+        let errorMessage = `Payment failed (${response.status})`;
+        
+        try {
+          const text = await response.text();
+          console.log('Raw error response text:', text); // Debug log
+          if (text) {
+            try {
+              errorData = JSON.parse(text);
+            } catch (parseError) {
+              console.error('Failed to parse JSON from error response:', parseError);
+              // If it's not JSON, use the raw text
+              errorMessage = text || errorMessage;
+            }
+          }
+        } catch (readError) {
+          console.error('Failed to read error response:', readError);
+          errorMessage = `Payment failed (${response.status}: ${response.statusText || 'Unknown error'})`;
+        }
+        
+        // Extract error message from response - check all possible fields
+        if (errorData && typeof errorData === 'object') {
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = typeof errorData.error === 'string' 
+              ? errorData.error 
+              : JSON.stringify(errorData.error);
+          } else if (errorData.details) {
+            if (Array.isArray(errorData.details)) {
+              errorMessage = errorData.details.map((d: any) => 
+                typeof d === 'string' ? d : (d.message || JSON.stringify(d))
+              ).join(', ');
+            } else {
+              errorMessage = typeof errorData.details === 'string' 
+                ? errorData.details 
+                : JSON.stringify(errorData.details);
+            }
+          } else if (Object.keys(errorData).length > 0) {
+            // If we have error data but no message/error field, stringify it
+            errorMessage = JSON.stringify(errorData);
+          }
+        }
+        
+        // If errorMessage is still generic or "fetch failed", provide better context
+        if (errorMessage === 'fetch failed' || errorMessage.includes('fetch failed')) {
+          errorMessage = `Server error (${response.status}): The payment server encountered an error. Please try again or contact support.`;
+        }
+        
+        console.error('Payment error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          errorMessage,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+        
+        throw new Error(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order submission error:', error);
-      alert('Failed to place order. Please try again.');
+      
+      // Extract meaningful error message
+      let errorMessage = 'Failed to process payment. Please check your card details and try again.';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.name === 'TypeError' && error?.message?.includes('fetch')) {
+        errorMessage = 'Network error: Unable to connect to payment server. Please check your internet connection and try again.';
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      console.error('Error details:', {
+        name: error?.name,
+        message: error?.message,
+        type: typeof error,
+        error: error
+      });
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -342,8 +517,8 @@ export default function CheckoutPage() {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center space-x-4">
-              {[1, 2, 3, 4].map((stepNumber) => (
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-wrap justify-center">
+              {[1, 2, 3, 4, 5].map((stepNumber) => (
                 <div key={stepNumber} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
@@ -355,8 +530,8 @@ export default function CheckoutPage() {
                   >
                     {stepNumber}
                   </div>
-                  {stepNumber < 4 && (
-                    <div className={`w-16 h-1 mx-2 ${step > stepNumber ? 'bg-amber-600' : 'bg-gray-700'}`} style={step > stepNumber ? {backgroundColor: '#FFD500'} : {}} />
+                  {stepNumber < 5 && (
+                    <div className={`w-8 sm:w-16 h-1 mx-1 sm:mx-2 ${step > stepNumber ? 'bg-amber-600' : 'bg-gray-700'}`} style={step > stepNumber ? {backgroundColor: '#FFD500'} : {}} />
                   )}
                 </div>
               ))}
@@ -372,7 +547,8 @@ export default function CheckoutPage() {
                     {step === 1 && 'Contact Information'}
                     {step === 2 && 'Delivery Method'}
                     {step === 3 && 'Time Slot'}
-                    {step === 4 && 'Payment'}
+                    {step === 4 && 'Review'}
+                    {step === 5 && 'Payment'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -505,10 +681,10 @@ export default function CheckoutPage() {
                           No time slots available at the moment. Please try again later.
                         </p>
                       ) : (
-                        <Select value={formData.slot} onValueChange={(value) => handleInputChange('slot', value)}>
-                          <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                            <SelectValue placeholder="Choose a time slot" />
-                          </SelectTrigger>
+                      <Select value={formData.slot} onValueChange={(value) => handleInputChange('slot', value)}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                          <SelectValue placeholder="Choose a time slot" />
+                        </SelectTrigger>
                           <SelectContent 
                             className="bg-gray-800 border-gray-600 max-h-[300px]"
                           >
@@ -525,13 +701,13 @@ export default function CheckoutPage() {
                                 </SelectItem>
                               );
                             })}
-                          </SelectContent>
-                        </Select>
+                        </SelectContent>
+                      </Select>
                       )}
                     </div>
                   )}
 
-                  {/* Step 4: Payment */}
+                  {/* Step 4: Review */}
                   {step === 4 && (
                     <div className="space-y-4">
                       <div>
@@ -593,8 +769,111 @@ export default function CheckoutPage() {
                         </Select>
                       </div>
                       <div className="p-4 bg-gray-700 rounded-lg">
-                        <p className="text-sm text-gray-300">
-                          Payment will be processed securely through Worldpay.
+                        <p className="text-sm text-gray-300 mb-2">
+                          <strong>Order Summary:</strong>
+                        </p>
+                        <div className="text-sm text-gray-300 space-y-1">
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span>£{(subtotal / 100).toFixed(2)}</span>
+                          </div>
+                          {deliveryFee > 0 && (
+                            <div className="flex justify-between">
+                              <span>Delivery:</span>
+                              <span>£{(deliveryFee / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {discount > 0 && (
+                            <div className="flex justify-between text-green-400">
+                              <span>Discount:</span>
+                              <span>-£{(discount / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          {tip > 0 && (
+                            <div className="flex justify-between">
+                              <span>Tip:</span>
+                              <span>£{(tip / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-600" style={{color: '#FFD500'}}>
+                            <span>Total:</span>
+                            <span>£{(total / 100).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 5: Payment */}
+                  {step === 5 && (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-gray-700 rounded-lg mb-4">
+                        <p className="text-sm text-gray-300 mb-2">
+                          <strong>Total to Pay:</strong>
+                        </p>
+                        <p className="text-2xl font-bold" style={{color: '#FFD500'}}>
+                          £{(total / 100).toFixed(2)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="cardName" className="text-white">Cardholder Name *</Label>
+                        <Input
+                          id="cardName"
+                          value={formData.cardName}
+                          onChange={(e) => handleInputChange('cardName', e.target.value)}
+                          className="bg-gray-700 border-gray-600 text-white"
+                          placeholder="Name on card"
+                          maxLength={50}
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="cardNumber" className="text-white">Card Number *</Label>
+                          <Input
+                            id="cardNumber"
+                            value={formData.cardNumber}
+                            onChange={(e) => handleCardNumberChange(e.target.value)}
+                            className="bg-gray-700 border-gray-600 text-white"
+                            placeholder="4444 3333 2222 1111"
+                            inputMode="numeric"
+                            autoComplete="cc-number"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="cardExpiry" className="text-white">Expiry (MM/YY) *</Label>
+                            <Input
+                              id="cardExpiry"
+                              value={formData.cardExpiry}
+                              onChange={(e) => handleCardExpiryChange(e.target.value)}
+                              className="bg-gray-700 border-gray-600 text-white"
+                              placeholder="11/28"
+                              inputMode="numeric"
+                              autoComplete="cc-exp"
+                              maxLength={5}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="cardCvc" className="text-white">CVC *</Label>
+                            <Input
+                              id="cardCvc"
+                              value={formData.cardCvc}
+                              onChange={(e) => handleCardCvcChange(e.target.value)}
+                              className="bg-gray-700 border-gray-600 text-white"
+                              placeholder="123"
+                              inputMode="numeric"
+                              autoComplete="cc-csc"
+                              maxLength={4}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-amber-600/10 border border-amber-600/30 rounded-lg">
+                        <p className="text-xs text-amber-400">
+                          🔒 Payment is processed securely through Worldpay. Your card details are encrypted and never stored.
                         </p>
                       </div>
                     </div>
@@ -610,7 +889,7 @@ export default function CheckoutPage() {
                     >
                       Back
                     </Button>
-                    {step < 4 ? (
+                    {step < 5 ? (
                       <Button 
                         onClick={handleNext}
                         disabled={!validateStep(step)}
@@ -622,11 +901,11 @@ export default function CheckoutPage() {
                     ) : (
                       <Button 
                         onClick={handleSubmit} 
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !validateStep(step)}
                         className="bg-amber-600 hover:bg-amber-700 text-black font-semibold disabled:bg-gray-600 disabled:text-white"
                         style={{backgroundColor: '#FFD500'}}
                       >
-                        {isSubmitting ? 'Processing...' : 'Place Order'}
+                        {isSubmitting ? 'Processing Payment...' : 'Pay £' + (total / 100).toFixed(2)}
                       </Button>
                     )}
                   </div>

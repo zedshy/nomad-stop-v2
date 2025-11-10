@@ -162,15 +162,17 @@ export const useCartStore = create<CartStore>()(
       },
 
       getDeliveryFee: () => {
-        const state = get();
-        const subtotal = state.getSubtotal();
-        if (state.fulfilment === 'pickup') return 0;
+        // TEMPORARILY DISABLED FOR TESTING - Remove this to restore delivery fee
+        return 0;
         
-        // Free delivery over £25
-        if (subtotal >= 2500) return 0;
-        
-        // £2.99 delivery fee
-        return 299;
+        // Original code (commented out for testing):
+        // const state = get();
+        // const subtotal = state.getSubtotal();
+        // if (state.fulfilment === 'pickup') return 0;
+        // // Free delivery over £25
+        // if (subtotal >= 2500) return 0;
+        // // £2.99 delivery fee
+        // return 299;
       },
 
       getTip: () => {

@@ -149,15 +149,17 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardContent>
 
-      {/* Size Selection Dialog for products with variants */}
+      {/* Selection Dialog for products with variants */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">
-              Select Size
+              {product.category === 'Drinks' ? 'Select Drink' : 'Select Size'}
             </DialogTitle>
             <DialogDescription className="text-gray-300">
-              Choose your preferred size for {product.name}
+              {product.category === 'Drinks' 
+                ? `Choose your drink for ${product.name}`
+                : `Choose your preferred size for ${product.name}`}
             </DialogDescription>
           </DialogHeader>
           
