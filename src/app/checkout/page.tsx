@@ -89,9 +89,10 @@ export default function CheckoutPage() {
   }, [step]);
   
   // Refresh slots when entering step 3
+  // Note: Slots are regenerated automatically when step changes via useMemo dependency
   useEffect(() => {
     if (step === 3) {
-      setSlotRefreshKey(prev => prev + 1);
+      // Slots will refresh automatically due to step dependency in useMemo
     }
   }, [step]);
 
