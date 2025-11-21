@@ -29,7 +29,7 @@ export async function GET() {
       }
       
       if (!prisma.admin) {
-        console.error('Admin model not available in Prisma client. Available models:', Object.keys(prisma).filter(k => !k.startsWith('$') && !k.startsWith('_') && typeof prisma[k as keyof typeof prisma] === 'object'));
+        console.error('Admin model not available in Prisma client. Available models:', Object.keys(prisma).filter(k => !k.startsWith('$') && !k.startsWith('_') && typeof (prisma as any)[k] === 'object'));
         return NextResponse.json([]);
       }
       

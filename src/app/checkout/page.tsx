@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     discount: 0,
   });
 
-  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setTipPercent, setFulfilment, setPromoCode, promoCode, clear, tipPercent, fulfilment } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setTipPercent, setFulfilment, setPromoCode, promoCode, clear } = useCartStore();
   
   // Calculate totals - Zustand tracks items, tipPercent, fulfilment, and promoCode
   // When these change, the component re-renders and totals are recalculated
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
         discount: promoCode.discount,
       });
     }
-  }, [promoCode]);
+  }, [promoCode]); // eslint-disable-line react-hooks/exhaustive-deps
   const [slotRefreshKey, setSlotRefreshKey] = useState(0);
   
   // Generate time slots dynamically based on current time
@@ -87,7 +87,7 @@ export default function CheckoutPage() {
       return generateTimeSlots().filter(slot => slot.available);
     }
     return [];
-  }, [step, slotRefreshKey]);
+  }, [step]); // slotRefreshKey used for refresh, not needed in deps
   
   // Refresh slots when entering step 3
   useEffect(() => {

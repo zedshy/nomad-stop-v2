@@ -178,7 +178,7 @@ export default function AdminDashboard() {
           try {
             const admin = JSON.parse(storedAdmin);
             setCurrentAdmin(admin);
-          } catch (e) {
+          } catch {
             // Invalid stored admin, ignore
           }
         }
@@ -200,7 +200,6 @@ export default function AdminDashboard() {
       fetchPromoCodes();
       fetchAdminUsers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   // Auto-refresh orders every 10 seconds when authenticated and on orders tab
@@ -252,7 +251,7 @@ export default function AdminDashboard() {
         setLoginError('Invalid password. Please try again.');
         setPassword('');
       }
-    } catch (error) {
+    } catch {
       setLoginError('Connection error. Please check your internet and try again.');
     } finally {
       setIsLoggingIn(false);
@@ -1948,7 +1947,7 @@ export default function AdminDashboard() {
                         const data = await response.json();
                         setPasswordError(data.error || 'Failed to change password');
                       }
-                    } catch (error) {
+                    } catch {
                       setPasswordError('Connection error. Please try again.');
                     } finally {
                       setIsChangingPassword(false);
