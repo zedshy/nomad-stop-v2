@@ -78,16 +78,15 @@ export default function CheckoutPage() {
       });
     }
   }, [promoCode]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [slotRefreshKey, setSlotRefreshKey] = useState(0);
   
   // Generate time slots dynamically based on current time
-  // Regenerate when step changes to 3 or when explicitly refreshed
+  // Regenerate when step changes to 3
   const timeSlots = useMemo(() => {
     if (step === 3) {
       return generateTimeSlots().filter(slot => slot.available);
     }
     return [];
-  }, [step]); // slotRefreshKey used for refresh, not needed in deps
+  }, [step]);
   
   // Refresh slots when entering step 3
   useEffect(() => {

@@ -350,7 +350,7 @@ export default function AdminDashboard() {
         try {
           const admin = JSON.parse(storedAdmin);
           setCurrentAdmin(admin);
-        } catch (e) {
+        } catch {
           // Invalid stored admin, ignore
         }
       }
