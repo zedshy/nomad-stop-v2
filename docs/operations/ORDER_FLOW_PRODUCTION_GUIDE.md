@@ -99,7 +99,7 @@ git commit -m "Database backup"
 ### 4. **PostgreSQL** (Better than SQLite for Production)
 - Concurrent access
 - Better performance
-- Free tier on Neon or Supabase
+- PostgreSQL database (installed directly on VPS or managed service)
 - Link: https://neon.tech
 
 ## 🔄 Order Status Flow

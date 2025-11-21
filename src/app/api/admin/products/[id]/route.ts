@@ -1,16 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 // GET single product
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    const { id } = await context.params;
+
+    if (DISABLE_DB) {
+      // Return mock product when DB is disabled
+      const mockProduct = MOCK_PRODUCTS.find(p => p.id === id);
+      if (!mockProduct) {
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(mockProduct);
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         variants: true,
         addons: true,
@@ -32,22 +51,37 @@ export async function GET(
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
 // PUT update product
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      return NextResponse.json(
+        { error: 'Database is disabled. Please enable database connection to update products. Changes made in admin will appear on the website once the database is connected.' },
+        { status: 503 }
+      );
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
+    const { id: productId } = await context.params;
     const data = await request.json();
     const { name, slug, description, category, popular, allergens, variants, addons } = data;
 
     // Check if product exists
     const existing = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: productId },
     });
 
     if (!existing) {
@@ -73,15 +107,15 @@ export async function PUT(
 
     // Delete existing variants and addons, then create new ones
     await prisma.productVariant.deleteMany({
-      where: { productId: params.id },
+      where: { productId },
     });
 
     await prisma.addon.deleteMany({
-      where: { productId: params.id },
+      where: { productId },
     });
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id: productId },
       data: {
         name,
         slug: slug || existing.slug,
@@ -110,18 +144,33 @@ export async function PUT(
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
 // DELETE product
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      return NextResponse.json(
+        { error: 'Database is disabled. Please enable database connection to delete products.' },
+        { status: 503 }
+      );
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
+    const { id } = await context.params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!product) {
@@ -132,7 +181,7 @@ export async function DELETE(
     }
 
     await prisma.product.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Product deleted successfully' });
@@ -143,7 +192,9 @@ export async function DELETE(
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 

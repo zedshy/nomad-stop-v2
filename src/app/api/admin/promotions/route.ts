@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 // GET all promo codes
 export async function GET() {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      // Return empty array when DB is disabled
+      return NextResponse.json([]);
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
     const promoCodes = await prisma.promoCode.findMany({
       orderBy: {
         createdAt: 'desc',
@@ -13,21 +22,35 @@ export async function GET() {
     });
 
     return NextResponse.json(promoCodes);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch promo codes:', error);
-    console.error('Error details:', error.message, error.code);
-    return NextResponse.json(
-      { error: 'Failed to fetch promo codes', details: error.message },
-      { status: 500 }
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = error && typeof error === 'object' && 'code' in error ? String(error.code) : undefined;
+    console.error('Error details:', errorMessage, errorCode);
+    // Return empty array on error to prevent frontend crashes
+    return NextResponse.json([]);
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
 // POST create new promo code
 export async function POST(request: NextRequest) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      return NextResponse.json(
+        { error: 'Database is disabled. Cannot create promo code.' },
+        { status: 503 }
+      );
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
     const data = await request.json();
     const {
       code,
@@ -101,7 +124,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 

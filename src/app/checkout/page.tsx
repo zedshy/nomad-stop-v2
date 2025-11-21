@@ -364,20 +364,21 @@ export default function CheckoutPage() {
           // Add timeout to prevent hanging
           signal: AbortSignal.timeout(30000) // 30 second timeout
         });
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         // Network error - server might be down or unreachable
+        const errorObj = fetchError instanceof Error ? fetchError : null;
         console.error('Fetch error:', {
-          name: fetchError?.name,
-          message: fetchError?.message,
-          cause: fetchError?.cause,
+          name: errorObj?.name,
+          message: errorObj?.message,
+          cause: errorObj?.cause,
           error: fetchError
         });
         
         let errorMsg = 'Network request failed';
-        if (fetchError?.name === 'AbortError' || fetchError?.name === 'TimeoutError') {
+        if (errorObj?.name === 'AbortError' || errorObj?.name === 'TimeoutError') {
           errorMsg = 'Request timed out. The server is taking too long to respond.';
-        } else if (fetchError?.message) {
-          errorMsg = fetchError.message;
+        } else if (errorObj?.message) {
+          errorMsg = errorObj.message;
         } else if (typeof fetchError === 'string') {
           errorMsg = fetchError;
         }
@@ -399,7 +400,7 @@ export default function CheckoutPage() {
         router.push(`/order/pending?oid=${orderId}`);
       } else {
         // Try to parse error response
-        let errorData: any = {};
+        let errorData: Record<string, unknown> = {};
         let errorMessage = `Payment failed (${response.status})`;
         
         try {
@@ -421,7 +422,7 @@ export default function CheckoutPage() {
         
         // Extract error message from response - check all possible fields
         if (errorData && typeof errorData === 'object') {
-          if (errorData.message) {
+          if (errorData.message && typeof errorData.message === 'string') {
             errorMessage = errorData.message;
           } else if (errorData.error) {
             errorMessage = typeof errorData.error === 'string' 
@@ -429,9 +430,13 @@ export default function CheckoutPage() {
               : JSON.stringify(errorData.error);
           } else if (errorData.details) {
             if (Array.isArray(errorData.details)) {
-              errorMessage = errorData.details.map((d: any) => 
-                typeof d === 'string' ? d : (d.message || JSON.stringify(d))
-              ).join(', ');
+              errorMessage = errorData.details.map((d: unknown) => {
+                if (typeof d === 'string') return d;
+                if (d && typeof d === 'object' && 'message' in d) {
+                  return String((d as { message: unknown }).message);
+                }
+                return JSON.stringify(d);
+              }).join(', ');
             } else {
               errorMessage = typeof errorData.details === 'string' 
                 ? errorData.details 
@@ -458,23 +463,25 @@ export default function CheckoutPage() {
         
         throw new Error(errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Order submission error:', error);
       
       // Extract meaningful error message
       let errorMessage = 'Failed to process payment. Please check your card details and try again.';
       
-      if (error?.message) {
+      if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-        errorMessage = 'Network error: Unable to connect to payment server. Please check your internet connection and try again.';
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          errorMessage = 'Network error: Unable to connect to payment server. Please check your internet connection and try again.';
+        }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
       
+      const errorObj = error instanceof Error ? error : null;
       console.error('Error details:', {
-        name: error?.name,
-        message: error?.message,
+        name: errorObj?.name,
+        message: errorObj?.message,
         type: typeof error,
         error: error
       });
@@ -820,10 +827,12 @@ export default function CheckoutPage() {
                         <Label htmlFor="cardName" className="text-white">Cardholder Name *</Label>
                         <Input
                           id="cardName"
+                          type="text"
                           value={formData.cardName}
                           onChange={(e) => handleInputChange('cardName', e.target.value)}
                           className="bg-gray-700 border-gray-600 text-white"
                           placeholder="Name on card"
+                          autoComplete="cc-name"
                           maxLength={50}
                         />
                       </div>
@@ -833,12 +842,15 @@ export default function CheckoutPage() {
                           <Label htmlFor="cardNumber" className="text-white">Card Number *</Label>
                           <Input
                             id="cardNumber"
+                            type="text"
                             value={formData.cardNumber}
                             onChange={(e) => handleCardNumberChange(e.target.value)}
                             className="bg-gray-700 border-gray-600 text-white"
                             placeholder="4444 3333 2222 1111"
                             inputMode="numeric"
                             autoComplete="cc-number"
+                            maxLength={19}
+                            pattern="[0-9\s]{13,19}"
                           />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -846,6 +858,7 @@ export default function CheckoutPage() {
                             <Label htmlFor="cardExpiry" className="text-white">Expiry (MM/YY) *</Label>
                             <Input
                               id="cardExpiry"
+                              type="text"
                               value={formData.cardExpiry}
                               onChange={(e) => handleCardExpiryChange(e.target.value)}
                               className="bg-gray-700 border-gray-600 text-white"
@@ -853,12 +866,14 @@ export default function CheckoutPage() {
                               inputMode="numeric"
                               autoComplete="cc-exp"
                               maxLength={5}
+                              pattern="[0-9]{2}/[0-9]{2}"
                             />
                           </div>
                           <div>
                             <Label htmlFor="cardCvc" className="text-white">CVC *</Label>
                             <Input
                               id="cardCvc"
+                              type="text"
                               value={formData.cardCvc}
                               onChange={(e) => handleCardCvcChange(e.target.value)}
                               className="bg-gray-700 border-gray-600 text-white"
@@ -866,6 +881,7 @@ export default function CheckoutPage() {
                               inputMode="numeric"
                               autoComplete="cc-csc"
                               maxLength={4}
+                              pattern="[0-9]{3,4}"
                             />
                           </div>
                         </div>

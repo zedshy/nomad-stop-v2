@@ -1,0 +1,84 @@
+
+> nomad-stop-commerce@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Port 3000 is in use by process 3202, using available port 3001 instead.
+   ▲ Next.js 15.5.4 (Turbopack)
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.1.174:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1018ms
+ ○ Compiling /api/payments/worldpay/create-intent ...
+ ✓ Compiled /api/payments/worldpay/create-intent in 1104ms
+Worldpay env check {
+  usernamePresent: true,
+  passwordPresent: true,
+  entityId: 'PO4085650052',
+  checkoutId: '5d6c2c97-be19-4b97-b9a9-676cf5412c19',
+  environment: 'sandbox',
+  apiUrl: 'https://try.access.worldpay.com/payments/authorizations'
+}
+Worldpay authorization request {
+  url: 'https://try.access.worldpay.com/payments/authorizations',
+  environment: 'sandbox',
+  hasMerchantCode: true,
+  orderId: 'mock-order-1762881590334',
+  maskedCard: '444433******1111',
+  payload: {
+    transactionReference: 'mock-order-1762881590334',
+    merchant: { entity: 'PO4085650052' },
+    instruction: {
+      value: [Object],
+      narrative: [Object],
+      amount: [Object],
+      paymentInstrument: [Object]
+    }
+  }
+}
+ POST /api/payments/worldpay/create-intent 200 in 2385ms
+ ○ Compiling /order/pending ...
+ ✓ Compiled /order/pending in 1388ms
+ GET /order/pending?oid=mock-order-1762881590334 200 in 1486ms
+ ✓ Compiled /cart in 211ms
+ GET /cart 200 in 252ms
+ ✓ Compiled /menu in 292ms
+ GET /menu 200 in 352ms
+ GET /cart 200 in 62ms
+ ✓ Compiled /checkout in 282ms
+ GET /checkout 200 in 316ms
+ ✓ Compiled /api/check-postcode in 86ms
+ POST /api/check-postcode 200 in 447ms
+Worldpay env check {
+  usernamePresent: true,
+  passwordPresent: true,
+  entityId: 'PO4085650052',
+  checkoutId: '5d6c2c97-be19-4b97-b9a9-676cf5412c19',
+  environment: 'sandbox',
+  apiUrl: 'https://try.access.worldpay.com/payments/authorizations'
+}
+Worldpay authorization request {
+  url: 'https://try.access.worldpay.com/payments/authorizations',
+  environment: 'sandbox',
+  hasMerchantCode: true,
+  orderId: 'mock-order-1762881663310',
+  maskedCard: '444433******1111',
+  payload: {
+    transactionReference: 'mock-order-1762881663310',
+    merchant: { entity: 'PO4085650052' },
+    instruction: {
+      value: [Object],
+      narrative: [Object],
+      amount: [Object],
+      paymentInstrument: [Object]
+    }
+  }
+}
+ POST /api/payments/worldpay/create-intent 200 in 1131ms
+ GET /order/pending?oid=mock-order-1762881663310 200 in 63ms
+ ✓ Compiled / in 368ms
+ GET / 200 in 442ms
+ GET / 200 in 305ms
+ GET / 200 in 183ms
+[?25h

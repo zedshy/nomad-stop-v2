@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { createAuthorization } from '@/lib/worldpay';
+import { createAuthorization, WorldpayResponse, capture } from '@/lib/worldpay';
 import { calculatePricing } from '@/lib/pricing';
 import { parseTimeSlot } from '@/lib/slots';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 const CreateIntentSchema = z.object({
   items: z.array(z.object({
@@ -23,11 +23,11 @@ const CreateIntentSchema = z.object({
     phone: z.string(),
     email: z.string().optional(),
   }),
-         address: z.object({
-           line1: z.string(),
-           city: z.string(),
-           postcode: z.string(),
-         }).nullable().optional(),
+  address: z.object({
+    line1: z.string(),
+    city: z.string(),
+    postcode: z.string(),
+  }).nullable().optional(),
   slot: z.object({
     start: z.string(),
     end: z.string(),
@@ -42,8 +42,11 @@ const CreateIntentSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+  let orderId: string | null = null;
+
   try {
-    let body;
+    let body: unknown;
     try {
       body = await request.json();
     } catch (parseError) {
@@ -79,96 +82,100 @@ export async function POST(request: NextRequest) {
       slotEnd = parsed.end;
     }
 
-    // Create order in database
-    const order = await prisma.order.create({
-      data: {
-        status: 'payment_authorized',
-        fulfilment: validatedData.fulfilment,
-        slotStart,
-        slotEnd,
-        customerName: validatedData.customer.name,
-        customerPhone: validatedData.customer.phone,
-        customerEmail: validatedData.customer.email,
-        addressLine1: validatedData.address?.line1,
-        city: validatedData.address?.city,
-        postcode: validatedData.address?.postcode,
-        subtotal: pricing.subtotal,
-        deliveryFee: pricing.deliveryFee,
-        tip: pricing.tip,
-        serviceFee: pricing.serviceFee,
-        total: pricing.total,
-        currency: 'GBP',
-        items: {
-          create: validatedData.items.map(item => ({
-            sku: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            addons: item.addons || [],
-            allergens: item.allergens || '',
-          })),
+    if (!DISABLE_DB) {
+      const { PrismaClient } = await import('@prisma/client');
+      prisma = new PrismaClient();
+    }
+
+    if (!DISABLE_DB && prisma) {
+      const order = await prisma.order.create({
+        data: {
+          status: 'payment_authorized',
+          fulfilment: validatedData.fulfilment,
+          slotStart,
+          slotEnd,
+          customerName: validatedData.customer.name,
+          customerPhone: validatedData.customer.phone,
+          customerEmail: validatedData.customer.email,
+          addressLine1: validatedData.address?.line1,
+          city: validatedData.address?.city,
+          postcode: validatedData.address?.postcode,
+          subtotal: pricing.subtotal,
+          deliveryFee: pricing.deliveryFee,
+          tip: pricing.tip,
+          serviceFee: pricing.serviceFee,
+          total: pricing.total,
+          currency: 'GBP',
+          items: {
+            create: validatedData.items.map(item => ({
+              sku: item.id,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              addons: item.addons || [],
+              allergens: item.allergens || '',
+            })),
+          },
         },
-      },
-    });
+      });
+      orderId = order.id;
+    } else {
+      orderId = `mock-order-${Date.now()}`;
+    }
 
     // Create Worldpay authorization
-    let worldpayResponse;
+    let worldpayResponse: WorldpayResponse;
     try {
-      worldpayResponse = await Promise.race([
+      worldpayResponse = await Promise.race<WorldpayResponse>([
         createAuthorization({
           amount: pricing.total,
           currency: 'GBP',
           customer: validatedData.customer,
           meta: {
-            orderId: order.id,
+            orderId: orderId ?? '',
             fulfilment: validatedData.fulfilment,
             slot: validatedData.slot ? `${validatedData.slot.start}-${validatedData.slot.end}` : undefined,
           },
           card: validatedData.card,
         }),
         // Add a 25 second timeout as a backup (Worldpay has 10s, but this is a safety net)
-        new Promise((_, reject) => 
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Worldpay authorization timeout')), 25000)
-        )
-      ]) as any;
+        ),
+      ]);
       
       // Validate Worldpay response structure
       if (!worldpayResponse || !worldpayResponse.worldpayRef) {
         throw new Error('Invalid response from Worldpay: missing worldpayRef');
       }
-    } catch (worldpayError: any) {
+    } catch (worldpayError: unknown) {
       console.error('Worldpay authorization error:', {
-        name: worldpayError?.name,
-        message: worldpayError?.message,
+        name: worldpayError instanceof Error ? worldpayError.name : 'UnknownError',
+        message: worldpayError instanceof Error ? worldpayError.message : String(worldpayError),
         error: worldpayError
       });
       // If Worldpay fails, we should not create the order - delete it
-      try {
-        await prisma.order.delete({ where: { id: order.id } });
-      } catch (deleteError) {
-        console.error('Error deleting order after Worldpay failure:', deleteError);
-        // Ignore delete errors - continue with error response
-      }
-      // Return error response instead of throwing
-      try {
-        await prisma.$disconnect();
-      } catch (disconnectError) {
-        console.error('Error disconnecting Prisma after Worldpay error:', disconnectError);
+      if (!DISABLE_DB && prisma && orderId) {
+        try {
+          await prisma.order.delete({ where: { id: orderId } });
+        } catch (deleteError) {
+          console.error('Error deleting order after Worldpay failure:', deleteError);
+        }
       }
       return NextResponse.json(
         { 
           error: 'Worldpay payment authorization failed', 
-          message: worldpayError?.message || 'Payment processing failed. Please try again.' 
+          message: worldpayError instanceof Error ? worldpayError.message : 'Payment processing failed. Please try again.' 
         },
         { status: 500 }
       );
     }
 
     // Create payment record
-    try {
+    if (!DISABLE_DB && prisma) {
       await prisma.payment.create({
         data: {
-          orderId: order.id,
+          orderId: orderId ?? '',
           gateway: 'worldpay',
           status: 'authorized',
           worldpayRef: worldpayResponse.worldpayRef,
@@ -176,46 +183,98 @@ export async function POST(request: NextRequest) {
           currency: 'GBP',
         },
       });
-    } catch (paymentError) {
-      console.error('Error creating payment record:', paymentError);
-      // If payment record creation fails, try to delete the order
-      try {
-        await prisma.order.delete({ where: { id: order.id } });
-      } catch (deleteError) {
-        console.error('Error deleting order after payment creation failure:', deleteError);
-      }
-      try {
-        await prisma.$disconnect();
-      } catch (disconnectError) {
-        console.error('Error disconnecting Prisma:', disconnectError);
-      }
-      return NextResponse.json(
-        { error: 'Failed to create payment record', message: 'Payment processing failed' },
-        { status: 500 }
-      );
     }
 
-    // Disconnect Prisma before returning success
+    // Automatically capture the payment (no manual authorization needed)
+    let captureResult;
     try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error('Error disconnecting Prisma:', disconnectError);
+      captureResult = await capture(worldpayResponse.worldpayRef, pricing.total);
+      
+      if (captureResult.success && !DISABLE_DB && prisma) {
+        // Update payment status to captured
+        const payment = await prisma.payment.findFirst({
+          where: { orderId: orderId ?? '' },
+        });
+        
+        if (payment) {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'captured',
+              capturedAt: captureResult.capturedAt || new Date(),
+            },
+          });
+        }
+
+        // Update order status to captured (accepted)
+        const updatedOrder = await prisma.order.update({
+          where: { id: orderId ?? '' },
+          data: {
+            status: 'captured',
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        // Send confirmation email to customer automatically
+        if (updatedOrder.customerEmail) {
+          try {
+            const orderNumber = `#NS-${updatedOrder.createdAt.getFullYear()}-${updatedOrder.id.slice(0, 8).toUpperCase()}`;
+            
+            await sendOrderConfirmationEmail({
+              orderId: updatedOrder.id,
+              orderNumber,
+              customerName: updatedOrder.customerName,
+              customerEmail: updatedOrder.customerEmail,
+              items: updatedOrder.items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+              subtotal: updatedOrder.subtotal,
+              deliveryFee: updatedOrder.deliveryFee,
+              tip: updatedOrder.tip,
+              total: updatedOrder.total,
+              fulfilment: updatedOrder.fulfilment,
+              slotStart: updatedOrder.slotStart || undefined,
+              slotEnd: updatedOrder.slotEnd || undefined,
+              address: updatedOrder.addressLine1 ? {
+                line1: updatedOrder.addressLine1,
+                city: updatedOrder.city || '',
+                postcode: updatedOrder.postcode || '',
+              } : undefined,
+              phone: updatedOrder.customerPhone,
+            });
+          } catch (emailError) {
+            // Log email error but don't fail the payment
+            console.error('Failed to send order confirmation email:', emailError);
+          }
+        }
+      } else if (!captureResult.success) {
+        // If capture fails, log but don't fail the order (payment is still authorized)
+        console.error('Auto-capture failed, but payment is authorized:', captureResult.error);
+      }
+    } catch (captureError) {
+      // If capture fails, log but don't fail the order (payment is still authorized)
+      console.error('Auto-capture error (payment still authorized):', captureError);
     }
 
     return NextResponse.json({
-      orderId: order.id,
+      orderId: orderId ?? '',
       worldpayRef: worldpayResponse.worldpayRef,
       total: pricing.total,
+      captured: captureResult?.success || false,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create intent error:', error);
-    
-    // Ensure Prisma is disconnected even on error
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error('Error disconnecting Prisma:', disconnectError);
+    if (!DISABLE_DB && prisma && orderId) {
+      try {
+        await prisma.order.delete({ where: { id: orderId } });
+      } catch (deleteError) {
+        console.error('Error deleting order after failure:', deleteError);
+      }
     }
     
     if (error instanceof z.ZodError) {
@@ -239,9 +298,10 @@ export async function POST(request: NextRequest) {
       errorMessage = 'An unexpected error occurred while processing your payment. Please try again or contact support.';
     }
     
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
     console.error('Error details:', {
       message: errorMessage,
-      name: error?.name,
+      name: errorName,
       error: error,
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -251,5 +311,13 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create payment intent', message: errorMessage },
       { status: 500 }
     );
+  } finally {
+    if (!DISABLE_DB && prisma) {
+      try {
+        await prisma.$disconnect();
+      } catch (disconnectError) {
+        console.error('Error disconnecting Prisma:', disconnectError);
+      }
+    }
   }
 }

@@ -1,51 +1,21 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 
 export default function AboutVideoSection() {
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      const handleLoadedData = () => {
-        setIsVideoLoaded(true);
-        video.play().catch((error) => {
-          console.log('Video autoplay prevented:', error);
-        });
-      };
-
-      video.addEventListener('loadeddata', handleLoadedData);
-      return () => video.removeEventListener('loadeddata', handleLoadedData);
-    }
-  }, []);
-
   return (
     <section id="about" className="relative h-[70vh] sm:h-[80vh] w-full overflow-hidden bg-black pt-20 md:pt-24">
-      {/* Video Background */}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover"
-        playsInline
-        muted
-        autoPlay
-        loop
-        poster="/video/about-poster.jpg"
-      >
-        <source src="/video/about-bg.webm" type="video/webm" />
-        <source src="/video/about-bg.mp4" type="video/mp4" />
-      </video>
-
-      {/* Fallback background if video doesn't load */}
-      {!isVideoLoaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800 via-black to-gray-900">
-          <div className="absolute inset-0 opacity-8">
-            <div className="absolute top-1/3 right-1/3 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl" style={{backgroundColor: 'rgba(255, 213, 0, 0.02)'}}></div>
-            <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-amber-600/3 rounded-full blur-3xl" style={{backgroundColor: 'rgba(255, 213, 0, 0.01)'}}></div>
-          </div>
-        </div>
-      )}
+      {/* Image Background */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <Image
+          src="/about-image.png"
+          alt="Nomad Stop - Our Story"
+          fill
+          priority
+          className="object-cover"
+          quality={90}
+        />
+      </div>
 
       {/* Dark overlay for text readability */}
       <div className="absolute inset-0 bg-black/55" />

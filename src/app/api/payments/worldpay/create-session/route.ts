@@ -54,9 +54,9 @@ export async function POST() {
     const text = await response.text();
 
     if (!response.ok) {
-      let errorData: any = {};
+      let errorData: Record<string, unknown> = {};
       try {
-        errorData = text ? JSON.parse(text) : {};
+        errorData = text ? (JSON.parse(text) as Record<string, unknown>) : {};
       } catch {
         errorData = { message: text };
       }
@@ -82,9 +82,9 @@ export async function POST() {
       );
     }
 
-    let data: any = {};
+    let data: Record<string, unknown> = {};
     try {
-      data = text ? JSON.parse(text) : {};
+      data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
     } catch (parseError) {
       console.error('Failed to parse Worldpay session response:', parseError, text);
       return NextResponse.json(
@@ -104,12 +104,12 @@ export async function POST() {
       id: data.id,
       expires: data.expires || null,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error creating Worldpay session:', error);
     return NextResponse.json(
       {
         error: 'Unexpected error creating Worldpay session',
-        message: error?.message || 'Unknown error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 },
     );

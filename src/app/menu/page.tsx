@@ -1,34 +1,55 @@
-import { PrismaClient } from '@prisma/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductCard from '@/components/ProductCard';
+import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
-async function getProductsByCategory() {
-  const products = await prisma.product.findMany({
-    include: {
-      variants: true,
-    },
-    orderBy: {
-      category: 'asc',
-    },
-  });
-
-  // Group products by category
-  const categories = products.reduce((acc, product) => {
+function buildMockCategories() {
+  return MOCK_PRODUCTS.reduce<Record<string, typeof MOCK_PRODUCTS>>((acc, product) => {
     if (!acc[product.category]) {
       acc[product.category] = [];
     }
     acc[product.category].push(product);
     return acc;
-  }, {} as Record<string, typeof products>);
+  }, {});
+}
 
-  return categories;
+async function getProductsByCategory() {
+  if (DISABLE_DB) {
+    return buildMockCategories();
+  }
+
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    const products = await prisma.product.findMany({
+      include: {
+        variants: true,
+      },
+      orderBy: {
+        category: 'asc',
+      },
+    });
+
+    await prisma.$disconnect();
+
+    return products.reduce<Record<string, typeof products>>((acc, product) => {
+      if (!acc[product.category]) {
+        acc[product.category] = [];
+      }
+      acc[product.category].push(product);
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('Failed to fetch menu products from database. Falling back to mock data.', error);
+    return buildMockCategories();
+  }
 }
 
 export default async function MenuPage() {
   const categories = await getProductsByCategory();
   const categoryNames = Object.keys(categories);
+  const defaultCategory = categoryNames[0] ?? '';
 
   return (
     <main className="py-16 bg-black pt-20 md:pt-24">
@@ -42,7 +63,12 @@ export default async function MenuPage() {
           </p>
         </div>
 
-        <Tabs defaultValue={categoryNames[0]} className="w-full">
+        {!categoryNames.length ? (
+          <p className="text-center text-gray-300">
+            Menu is currently unavailable. Please check back soon.
+          </p>
+        ) : (
+          <Tabs defaultValue={defaultCategory} className="w-full">
           <div className="mb-8 w-full">
             <TabsList className="flex flex-wrap w-full bg-gray-800 border border-gray-700 rounded-lg p-1.5 gap-1.5 justify-start items-center min-h-[2.5rem] overflow-hidden">
               {categoryNames.map((category) => (
@@ -67,6 +93,7 @@ export default async function MenuPage() {
             </TabsContent>
           ))}
         </Tabs>
+        )}
       </div>
     </main>
   );

@@ -1,16 +1,29 @@
-import { PrismaClient } from '@prisma/client';
 import ProductCard from '@/components/ProductCard';
+import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 async function getPopularProducts() {
-  return await prisma.product.findMany({
-    where: { popular: true },
-    include: {
-      variants: true,
-    },
-    take: 6,
-  });
+  if (DISABLE_DB) {
+    return MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6);
+  }
+
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    const products = await prisma.product.findMany({
+      where: { popular: true },
+      include: {
+        variants: true,
+      },
+      take: 6,
+    });
+    await prisma.$disconnect();
+    return products;
+  } catch (error) {
+    console.error('Failed to fetch popular products from database. Falling back to mock data.', error);
+    return MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6);
+  }
 }
 
 export default async function PopularProducts() {

@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 // GET all products
 export async function GET() {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      // Return mock products when DB is disabled so admin can see menu structure
+      // Note: Changes won't persist until database is connected
+      return NextResponse.json(MOCK_PRODUCTS);
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
     const products = await prisma.product.findMany({
       include: {
         variants: true,
@@ -18,19 +29,38 @@ export async function GET() {
 
     return NextResponse.json(products);
   } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
-    );
+    console.error('Failed to fetch products from database. Falling back to mock data.', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // If table doesn't exist, return mock data (migrations haven't been run yet)
+    if (errorMessage.includes('table') && errorMessage.includes('does not exist')) {
+      console.warn('Product table does not exist yet. Returning mock data. Run migrations: npx prisma migrate deploy');
+    }
+    
+    // Return mock products on error so admin can still see menu structure
+    return NextResponse.json(MOCK_PRODUCTS);
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
 // POST create new product
 export async function POST(request: NextRequest) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
+    if (DISABLE_DB) {
+      return NextResponse.json(
+        { error: 'Database is disabled. Please enable database connection to save products. Changes made in admin will appear on the website once the database is connected and seeded.' },
+        { status: 503 }
+      );
+    }
+
+    const { PrismaClient } = await import('@prisma/client');
+    prisma = new PrismaClient();
+
     const data = await request.json();
     const { name, slug, description, category, popular, allergens, variants, addons } = data;
 
@@ -83,7 +113,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 

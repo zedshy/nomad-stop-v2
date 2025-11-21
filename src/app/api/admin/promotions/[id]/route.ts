@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 // GET single promo code
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const promoCode = await prisma.promoCode.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!promoCode) {
@@ -35,9 +36,10 @@ export async function GET(
 // PUT update promo code
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const data = await request.json();
     const {
       code,
@@ -54,7 +56,7 @@ export async function PUT(
 
     // Check if promo code exists
     const existing = await prisma.promoCode.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existing) {
@@ -97,7 +99,7 @@ export async function PUT(
     }
 
     const promoCode = await prisma.promoCode.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         code: code ? code.toUpperCase() : existing.code,
         name: code ? code.toUpperCase() : existing.code,
@@ -128,11 +130,12 @@ export async function PUT(
 // DELETE promo code
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const promoCode = await prisma.promoCode.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!promoCode) {
@@ -143,7 +146,7 @@ export async function DELETE(
     }
 
     await prisma.promoCode.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ message: 'Promo code deleted successfully' });
