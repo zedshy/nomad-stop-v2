@@ -88,13 +88,7 @@ export default function CheckoutPage() {
     return [];
   }, [step]);
   
-  // Refresh slots when entering step 3
-  // Note: Slots are regenerated automatically when step changes via useMemo dependency
-  useEffect(() => {
-    if (step === 3) {
-      // Slots will refresh automatically due to step dependency in useMemo
-    }
-  }, [step]);
+  // Note: Time slots are regenerated automatically when step changes via useMemo dependency
 
   // Check postcode when it changes (only for delivery)
   useEffect(() => {
