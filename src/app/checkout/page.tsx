@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     discount: 0,
   });
 
-  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setPromoCode, promoCode, clear } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setPromoCode, setFulfilment, setTipPercent, promoCode, clear } = useCartStore();
   
   // Calculate totals - Zustand tracks items, tipPercent, fulfilment, and promoCode
   // When these change, the component re-renders and totals are recalculated
