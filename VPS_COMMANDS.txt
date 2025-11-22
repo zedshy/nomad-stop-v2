@@ -1,0 +1,21 @@
+# Copy and paste these commands ONE BY ONE on your VPS:
+
+cd /var/www/nomad-stop
+
+mv ecosystem.config.js ecosystem.config.js.backup
+
+git pull origin main
+
+npm run build:prod
+
+pm2 delete nomad-stop 2>/dev/null || true
+
+pm2 start ecosystem.config.js
+
+pm2 save
+
+pm2 status
+
+# If build fails, try this instead:
+# next build
+
