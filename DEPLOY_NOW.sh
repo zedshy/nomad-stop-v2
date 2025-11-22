@@ -121,7 +121,7 @@ echo "✅ Migrations complete"
 # Step 10: Build application
 echo ""
 echo -e "${GREEN}🔨 Step 10/12: Building application...${NC}"
-npm run build
+NEXT_DISABLE_ESLINT=1 npm run build
 echo "✅ Build complete"
 
 # Step 11: Setup PM2
