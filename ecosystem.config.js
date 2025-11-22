@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'nomad-stop',
-    script: 'npm',
+    script: 'node_modules/.bin/next',
     args: 'start',
     cwd: '/var/www/nomad-stop',
     instances: 1,
