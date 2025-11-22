@@ -42,10 +42,10 @@ else
     git clone https://github.com/zedshy/nomad-stop-v2.git .
 fi
 
-# Install dependencies
+# Install dependencies (including devDependencies for build)
 echo ""
-echo "📦 Step 6/12: Installing dependencies..."
-npm install --production
+echo "📦 Step 6/12: Installing dependencies (including dev dependencies for build)..."
+npm install
 npx prisma generate
 
 # Create .env file

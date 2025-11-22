@@ -58,10 +58,10 @@ else
 fi
 echo "✅ Repository cloned/updated"
 
-# Step 6: Install dependencies
+# Step 6: Install dependencies (including devDependencies for build)
 echo ""
-echo -e "${GREEN}📦 Step 6/12: Installing dependencies...${NC}"
-npm install --production
+echo -e "${GREEN}📦 Step 6/12: Installing dependencies (including dev dependencies for build)...${NC}"
+npm install
 echo "✅ Dependencies installed"
 
 # Step 7: Generate Prisma client
