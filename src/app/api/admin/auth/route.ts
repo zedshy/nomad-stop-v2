@@ -28,12 +28,23 @@ export async function POST(request: NextRequest) {
           throw new Error('Admin model not available');
         }
 
-        // If email provided, look up by email, otherwise check all active admins
+        // If email/username provided, look up by email or username
         if (email) {
           try {
-            const admin = await prisma.admin.findUnique({
+            // Try to find by email first
+            let admin = await prisma.admin.findUnique({
               where: { email },
             });
+
+            // If not found by email, try to find by username
+            if (!admin && email) {
+              admin = await prisma.admin.findFirst({
+                where: { 
+                  username: email,
+                  isActive: true 
+                },
+              });
+            }
 
             if (admin && admin.isActive) {
               const isValid = await bcrypt.compare(password, admin.passwordHash);
@@ -119,19 +130,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback to environment variable for backward compatibility
+    // Require username/email to be "admin" when using environment variable fallback
+    if (!email || email.trim() === '') {
+      return NextResponse.json(
+        { error: 'Username or email is required' },
+        { status: 400 }
+      );
+    }
+
     const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
-    if (password === adminPassword) {
+    // Check if username/email is "admin" (case-insensitive) and password matches
+    if (email.trim().toLowerCase() === 'admin' && password === adminPassword) {
       return NextResponse.json({ 
         success: true,
         admin: {
-          email: email || 'admin@nomadstop.com',
+          email: email.trim(),
+          username: 'admin',
           role: 'super_admin',
         },
       });
     }
 
     return NextResponse.json(
-      { error: 'Invalid password' },
+      { error: 'Invalid username or password' },
       { status: 401 }
     );
   } catch (error) {

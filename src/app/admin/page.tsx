@@ -81,7 +81,7 @@ interface AdminUser {
 
 export default function AdminDashboard() {
   // All hooks must be declared at the top before any conditional returns
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('admin');
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -217,13 +217,25 @@ export default function AdminDashboard() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+    
+    // Validate username/email is required
+    if (!email || email.trim() === '') {
+      setLoginError('Username/Email is required');
+      return;
+    }
+    
+    if (!password || password.trim() === '') {
+      setLoginError('Password is required');
+      return;
+    }
+    
     setIsLoggingIn(true);
 
     try {
     const response = await fetch('/api/admin/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email: email.trim(), password }),
     });
 
     if (response.ok) {
@@ -497,7 +509,7 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-gray-300 text-sm font-medium flex items-center gap-2">
                     <Mail className="w-4 h-4 text-amber-500" />
-                    Email or Username
+                    Username or Email <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -508,7 +520,8 @@ export default function AdminDashboard() {
                       setLoginError('');
                     }}
                     className="bg-gray-700/50 border-gray-600 text-white h-12 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 placeholder:text-gray-500"
-                    placeholder="admin@nomadstop.com (optional)"
+                    placeholder="admin"
+                    required
                   />
                 </div>
 
