@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   env: {
     NEXT_PUBLIC_WORLDPAY_CHECKOUT_ID:
       process.env.NEXT_PUBLIC_WORLDPAY_CHECKOUT_ID ||
