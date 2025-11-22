@@ -1,0 +1,23 @@
+# Copy and paste these commands ONE BY ONE on your VPS terminal:
+
+# 1. Go to project directory
+cd /var/www/nomad-stop
+
+# 2. Check PM2 status (see if app is running)
+pm2 status
+
+# 3. Check logs for errors
+pm2 logs nomad-stop --lines 100
+
+# 4. Check if port 3000 is listening
+sudo netstat -tuln | grep 3000
+
+# 5. If app is not running, start it:
+pm2 start ecosystem.config.js
+
+# 6. Save PM2 process
+pm2 save
+
+# 7. Check status again
+pm2 status
+

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+// DialogTrigger removed - not used
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, XCircle, Clock, MapPin, Phone, Mail, RefreshCw, LogOut, TrendingUp, Package, DollarSign, Users, ShoppingCart, Plus, Edit, Trash2, Tag, UtensilsCrossed, Lock, Eye, EyeOff, ChefHat, Settings, UserPlus, Key } from 'lucide-react';
@@ -294,6 +295,31 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Accept order error:', error);
       alert('Failed to accept order');
+    }
+  };
+
+  const handleRejectOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to reject this order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        alert('Order rejected successfully.');
+        fetchOrders();
+        setSelectedOrder(null);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to reject order');
+      }
+    } catch (error) {
+      console.error('Reject order error:', error);
+      alert('Failed to reject order');
     }
   };
 
@@ -1564,9 +1590,7 @@ export default function AdminDashboard() {
                                         <Button
                                           variant="destructive"
                                           className="flex-1"
-                                          onClick={() => {
-                                            alert('Order rejected!');
-                                          }}
+                                          onClick={() => handleRejectOrder(selectedOrder.id)}
                                         >
                                           <XCircle className="w-4 h-4 mr-2" />
                                           Reject Order

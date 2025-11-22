@@ -2,13 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
-const prisma = new PrismaClient();
+const DISABLE_DB = process.env.DISABLE_DB === 'true';
+let prisma: PrismaClient | null = null;
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (DISABLE_DB) {
+      return NextResponse.json(
+        { error: 'Database is disabled. Cannot accept order.' },
+        { status: 503 }
+      );
+    }
+
+    if (!prisma) {
+      const { PrismaClient } = await import('@prisma/client');
+      prisma = new PrismaClient();
+    }
+
     const { id: orderId } = await context.params;
 
     if (!orderId) {
@@ -99,7 +112,9 @@ export async function POST(
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
