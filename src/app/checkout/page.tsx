@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     discount: 0,
   });
 
-  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setTipPercent, setFulfilment, setPromoCode, promoCode, clear } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setPromoCode, promoCode, clear } = useCartStore();
   
   // Calculate totals - Zustand tracks items, tipPercent, fulfilment, and promoCode
   // When these change, the component re-renders and totals are recalculated
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
         discount: promoCode.discount,
       });
     }
-  }, [promoCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [promoCode, formData.promoCode]); // Include formData.promoCode to satisfy exhaustive-deps
   
   // Generate time slots dynamically based on current time
   // Regenerate when step changes to 3
@@ -86,9 +86,7 @@ export default function CheckoutPage() {
       return generateTimeSlots().filter(slot => slot.available);
     }
     return [];
-  }, [step]);
-  
-  // Note: Time slots are regenerated automatically when step changes via useMemo dependency
+  }, [step]); // step is the only dependency needed
 
   // Check postcode when it changes (only for delivery)
   useEffect(() => {

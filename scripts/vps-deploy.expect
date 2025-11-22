@@ -1,0 +1,180 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set host "92.205.231.55"
+set user "nomadadmin"
+set password "Nomad133@"
+
+puts "🔐 Connecting to VPS..."
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    "$ " {
+        puts "✅ Connected!"
+    }
+    "# " {
+        puts "✅ Connected as root!"
+    }
+    timeout {
+        puts "❌ Connection timed out"
+        exit 1
+    }
+}
+
+# Get sudo access
+expect {
+    "$ " {
+        send "sudo su -\r"
+        expect {
+            "password:" {
+                send "$password\r"
+                expect "# "
+            }
+            "# " {
+                # Already have sudo
+            }
+        }
+    }
+    "# " {
+        # Already root
+    }
+}
+
+puts "📦 Step 1: Updating system..."
+send "apt update && apt upgrade -y\r"
+expect "# "
+
+puts "📦 Step 2: Installing Node.js 20..."
+send "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -\r"
+expect "# "
+send "apt install -y nodejs\r"
+expect "# "
+
+puts "📦 Step 3: Installing PM2, Nginx, Git..."
+send "npm install -g pm2\r"
+expect "# "
+send "apt install -y nginx git\r"
+expect "# "
+
+puts "📁 Step 4: Setting up project directory..."
+send "mkdir -p /var/www/nomad-stop\r"
+expect "# "
+send "chown -R $user:$user /var/www/nomad-stop\r"
+expect "# "
+send "cd /var/www/nomad-stop\r"
+expect "# "
+
+puts "📥 Step 5: Cloning repository..."
+send "rm -rf * .* 2>/dev/null || true\r"
+expect "# "
+send "git clone https://github.com/zedshy/nomad-stop-v2.git .\r"
+expect "# "
+
+puts "📦 Step 6: Installing dependencies..."
+send "npm install --production\r"
+expect "# "
+send "npx prisma generate\r"
+expect "# "
+
+puts "⚙️  Step 7: Creating .env file..."
+send "cat > .env << 'ENVEOF'\r"
+send "DATABASE_URL=\"postgresql://user:password@host:5432/database?sslmode=require\"\r"
+send "DISABLE_DB=\"false\"\r"
+send "NODE_ENV=\"production\"\r"
+send "NEXT_PUBLIC_SITE_URL=\"http://92.205.231.55\"\r"
+send "WORLDPAY_USERNAME=\"your_username\"\r"
+send "WORLDPAY_PASSWORD=\"your_password\"\r"
+send "WORLDPAY_CHECKOUT_ID=\"your_checkout_id\"\r"
+send "WORLDPAY_ENTITY_ID=\"your_entity_id\"\r"
+send "WORLDPAY_ENVIRONMENT=\"production\"\r"
+send "WORLDPAY_WEBHOOK_SECRET=\"your_webhook_secret\"\r"
+send "EMAIL_HOST=\"smtp.gmail.com\"\r"
+send "EMAIL_USER=\"your-email@gmail.com\"\r"
+send "EMAIL_PASS=\"your-email-password\"\r"
+send "ADMIN_EMAIL=\"admin@nomadstop.com\"\r"
+send "ADMIN_PASSWORD=\"your-secure-password\"\r"
+send "ENVEOF\r"
+expect "# "
+
+puts "⚠️  IMPORTANT: .env file created with placeholders!"
+puts "⚠️  You need to edit it with your actual values before continuing."
+puts ""
+puts "Press Enter to continue after editing .env, or type 'skip' to continue anyway..."
+send "echo '⚠️  Please edit .env: nano .env'\r"
+expect "# "
+
+# Wait a bit for user to potentially edit
+sleep 2
+
+puts "🗄️  Step 8: Running database migrations..."
+send "npx prisma migrate deploy\r"
+expect "# "
+
+puts "🔨 Step 9: Building application..."
+send "npm run build\r"
+expect "# "
+
+puts "🚀 Step 10: Setting up PM2..."
+send "pm2 delete nomad-stop 2>/dev/null || true\r"
+expect "# "
+send "cd /var/www/nomad-stop\r"
+expect "# "
+send "pm2 start ecosystem.config.js\r"
+expect "# "
+send "pm2 save\r"
+expect "# "
+
+puts "🌐 Step 11: Setting up Nginx..."
+send "cat > /etc/nginx/sites-available/nomad-stop << 'NGINXEOF'\r"
+send "server {\r"
+send "    listen 80;\r"
+send "    server_name 92.205.231.55;\r"
+send "    location / {\r"
+send "        proxy_pass http://localhost:3000;\r"
+send "        proxy_http_version 1.1;\r"
+send "        proxy_set_header Upgrade \\\$http_upgrade;\r"
+send "        proxy_set_header Connection 'upgrade';\r"
+send "        proxy_set_header Host \\\$host;\r"
+send "        proxy_set_header X-Real-IP \\\$remote_addr;\r"
+send "        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;\r"
+send "        proxy_set_header X-Forwarded-Proto \\\$scheme;\r"
+send "        proxy_cache_bypass \\\$http_upgrade;\r"
+send "    }\r"
+send "}\r"
+send "NGINXEOF\r"
+expect "# "
+
+send "ln -sf /etc/nginx/sites-available/nomad-stop /etc/nginx/sites-enabled/\r"
+expect "# "
+send "rm -f /etc/nginx/sites-enabled/default\r"
+expect "# "
+send "nginx -t\r"
+expect "# "
+send "systemctl restart nginx\r"
+expect "# "
+
+puts "🔥 Step 12: Setting up firewall..."
+send "ufw allow 'Nginx Full' 2>/dev/null || true\r"
+expect "# "
+send "ufw allow OpenSSH 2>/dev/null || true\r"
+expect "# "
+send "ufw --force enable 2>/dev/null || true\r"
+expect "# "
+
+puts ""
+puts "✅ Deployment Complete!"
+puts "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+puts ""
+puts "🎉 Your site should be live at: http://92.205.231.55"
+puts ""
+puts "📋 Check status:"
+send "pm2 status\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
