@@ -75,78 +75,79 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow bg-gray-800 border-gray-700">
-      <CardContent className="p-6">
-        <div className="mb-2">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-semibold text-white">
+      <CardContent className="p-3.5 md:p-6">
+        {/* Title and Popular badge */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <Link href={`/menu#${product.slug}`} className="flex-1 min-w-0">
+            <h3 className="text-sm md:text-xl font-semibold text-white leading-snug hover:text-amber-600 transition-colors cursor-pointer line-clamp-2">
               {product.name}
             </h3>
-            {product.popular && (
-              <Badge className="bg-amber-600 text-white" style={{backgroundColor: '#FFD500'}}>
-                Popular
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-gray-300 mb-2">
-            {product.description}
-          </p>
-          <p className="text-sm text-gray-400">
-            {product.category}
-          </p>
+          </Link>
+          {product.popular && (
+            <Badge className="bg-amber-600 text-white text-[10px] md:text-xs px-2 py-0.5 flex-shrink-0" style={{backgroundColor: '#FFD500'}}>
+              Hot
+            </Badge>
+          )}
         </div>
 
-        {/* Price Display - Show price range if multiple variants, otherwise single price */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Price - prominent */}
+        <div className="mb-3">
           {product.variants.length > 1 ? (
-            <span className="text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
-              From £{(Math.min(...product.variants.map(v => v.price)) / 100).toFixed(2)}
+            <span className="text-xl md:text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
+              £{(Math.min(...product.variants.map(v => v.price)) / 100).toFixed(2)}
             </span>
           ) : (
-            <span className="text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
+            <span className="text-xl md:text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
               £{(displayPrice / 100).toFixed(2)}
             </span>
           )}
+        </div>
+
+        {/* Description */}
+        <p className="text-[11px] md:text-sm text-gray-300 mb-3 line-clamp-2 leading-relaxed">
+          {product.description}
+        </p>
+
+        {/* Category and Allergens */}
+        <div className="space-y-1 mb-4">
+          <p className="text-[10px] md:text-sm text-gray-400">
+            {product.category}
+          </p>
           {product.allergens && (
-            <span className="text-xs text-gray-400">
+            <p className="text-[10px] md:text-sm text-gray-400">
               {product.allergens}
-            </span>
+            </p>
           )}
         </div>
 
-        <div className="flex gap-2">
-          <Button 
-            className={`flex-1 transition-all duration-300 ${
-              added 
-                ? 'bg-green-600 hover:bg-green-700 text-white' 
-                : 'bg-amber-600 hover:bg-amber-700 text-black font-semibold'
-            }`}
-            style={!added ? {backgroundColor: '#FFD500'} : {}}
-            onClick={handleAddToCartClick}
-            disabled={isAdding}
-          >
-            {isAdding ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-black">Adding...</span>
-              </div>
-            ) : added ? (
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4" />
-                Added!
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Add to Cart
-              </div>
-            )}
-          </Button>
-          <Link href={`/menu#${product.slug}`}>
-            <Button variant="outline" className="border-amber-600 text-black hover:bg-amber-600 hover:text-black font-semibold" style={{borderColor: '#FFD500'}}>
-              Details
-            </Button>
-          </Link>
-        </div>
+        {/* Action buttons - only Add to Cart */}
+        <Button 
+          className={`w-full transition-all duration-300 text-sm md:text-base py-2.5 md:py-3 ${
+            added 
+              ? 'bg-green-600 hover:bg-green-700 text-white' 
+              : 'bg-amber-600 hover:bg-amber-700 text-black font-semibold'
+          }`}
+          style={!added ? {backgroundColor: '#FFD500'} : {}}
+          onClick={handleAddToCartClick}
+          disabled={isAdding}
+        >
+          {isAdding ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-black">Adding...</span>
+            </div>
+          ) : added ? (
+            <div className="flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" />
+              <span>Added!</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              <span>Add to Cart</span>
+            </div>
+          )}
+        </Button>
       </CardContent>
 
       {/* Selection Dialog for products with variants */}

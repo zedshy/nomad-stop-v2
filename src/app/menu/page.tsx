@@ -52,13 +52,13 @@ export default async function MenuPage() {
   const defaultCategory = categoryNames[0] ?? '';
 
   return (
-    <main className="py-16 bg-black pt-20 md:pt-24">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+    <main className="py-8 md:py-16 bg-black pt-20 md:pt-24">
+      <div className="container mx-auto px-3 md:px-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 md:mb-4">
             Our Menu
           </h1>
-          <p className="text-lg text-gray-300">
+          <p className="text-sm md:text-lg text-gray-300">
             Authentic Afghan flavors, prepared fresh daily
           </p>
         </div>
@@ -69,13 +69,13 @@ export default async function MenuPage() {
           </p>
         ) : (
           <Tabs defaultValue={defaultCategory} className="w-full">
-          <div className="mb-8 w-full">
-            <TabsList className="flex flex-wrap w-full bg-gray-800 border border-gray-700 rounded-lg p-1.5 gap-1.5 justify-start items-center min-h-[2.5rem] overflow-hidden">
+          <div className="mb-6 md:mb-8 w-full">
+            <TabsList className="grid grid-cols-2 md:flex md:flex-wrap w-full bg-gray-800 border border-gray-700 rounded-lg p-2 md:p-2 gap-2 md:gap-2 justify-start items-start">
               {categoryNames.map((category) => (
                 <TabsTrigger 
                   key={category} 
                   value={category} 
-                  className="text-sm text-gray-300 hover:text-white transition-all duration-200 menu-tab-trigger whitespace-nowrap flex-shrink-0"
+                  className="text-sm md:text-sm text-gray-300 hover:text-white transition-all duration-200 menu-tab-trigger whitespace-nowrap px-4 py-3 justify-center"
                 >
                   {category}
                 </TabsTrigger>
@@ -85,7 +85,7 @@ export default async function MenuPage() {
 
           {categoryNames.map((category) => (
             <TabsContent key={category} value={category} className="mt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                 {categories[category].map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

@@ -1,0 +1,60 @@
+# ============================================
+# NOMAD STOP - PRODUCTION ENVIRONMENT TEMPLATE
+# ============================================
+# Copy this file to .env and replace all placeholder values
+# 
+# TO USE THIS FILE:
+# 1. Copy: cp env-template.txt .env
+# 2. Edit: nano .env
+# 3. Replace all values marked with YOUR_XXX
+# 4. Save and secure: chmod 600 .env
+# ============================================
+
+# DATABASE CONFIGURATION
+DISABLE_DB=false
+DATABASE_URL="postgresql://YOUR_DB_USER:YOUR_DB_PASSWORD@localhost:5432/nomadstop?schema=public"
+
+# ADMIN CONFIGURATION
+ADMIN_PASSWORD="YOUR_SECURE_ADMIN_PASSWORD"
+
+# WORLDPAY PAYMENT CONFIGURATION
+WORLDPAY_USERNAME="YOUR_WORLDPAY_USERNAME"
+WORLDPAY_PASSWORD="YOUR_WORLDPAY_PASSWORD"
+WORLDPAY_ENVIRONMENT="production"
+WORLDPAY_WEBHOOK_SECRET="YOUR_WORLDPAY_WEBHOOK_SECRET"
+WORLDPAY_ENTITY_ID="YOUR_ENTITY_ID_IF_NEEDED"
+WORLDPAY_CHECKOUT_ID="YOUR_CHECKOUT_ID_IF_NEEDED"
+
+# EMAIL CONFIGURATION (Gmail example)
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT="587"
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="YOUR_GMAIL_APP_PASSWORD"
+EMAIL_FROM="Nomad Stop <noreply@nomadstop.com>"
+
+# APPLICATION CONFIGURATION
+NEXT_PUBLIC_BASE_URL="https://www.nomadstop.com"
+NODE_ENV="production"
+
+# ============================================
+# NOTES:
+# ============================================
+#
+# DATABASE_URL Format:
+#   postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE?schema=public
+#
+# WORLDPAY_USERNAME and WORLDPAY_PASSWORD:
+#   Get from Worldpay Merchant Console → Settings → API Credentials
+#
+# WORLDPAY_WEBHOOK_SECRET:
+#   Get from Worldpay Merchant Console → Settings → Webhooks
+#   CRITICAL: Must match the secret in your Worldpay webhook configuration
+#
+# EMAIL_PASS (for Gmail):
+#   1. Enable 2-Factor Authentication
+#   2. Google Account → Security → App Passwords
+#   3. Generate password for "Mail"
+#   4. Use that password here (NOT your regular Gmail password)
+#
+# ============================================
+

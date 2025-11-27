@@ -230,18 +230,44 @@
     margin: 0 !important; /* Remove any default margins */
   }
   
-  /* Fix TabsList to properly contain all tabs - ensure no overflow */
-  [data-slot="tabs-list"] {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+  /* Fix TabsList to properly contain all tabs - 2 column grid on mobile */
+  @media (max-width: 768px) {
+    [role="tablist"] {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      grid-auto-rows: minmax(44px, auto) !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      max-height: none !important;
+      height: auto !important;
+      min-height: fit-content !important;
+      overflow: visible !important;
+    }
+    
+    [role="tablist"] > [role="tab"] {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      justify-content: center !important;
+      height: auto !important;
+      min-height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
   }
   
-  /* Ensure tabs don't overflow the container */
-  [data-slot="tabs-list"] > [data-slot="tabs-trigger"] {
-    box-sizing: border-box !important;
-    max-width: 100% !important;
+  /* Desktop: flex wrap */
+  @media (min-width: 769px) {
+    [role="tablist"] {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    [role="tablist"] > [role="tab"] {
+      box-sizing: border-box !important;
+      max-width: 100% !important;
+    }
   }
   
   /* Remove ALL animations from select dropdowns - instant appearance */

@@ -31,7 +31,7 @@ export default async function PopularProducts() {
 
   return (
     <section id="popular-dishes" className="py-16 bg-black pt-20 md:pt-24">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-3 md:px-4">
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
             Popular Dishes
@@ -41,7 +41,7 @@ export default async function PopularProducts() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
