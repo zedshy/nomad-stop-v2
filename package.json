@@ -17,7 +17,8 @@
     "prices:parse": "tsx scripts/parse-price-updates.ts",
     "menu:update": "tsx scripts/update-menu-from-images.ts",
     "prices:quick": "tsx scripts/quick-price-update.ts",
-    "prices:update-all": "tsx scripts/update-all-prices-vps.ts"
+    "prices:update-all": "tsx scripts/update-all-prices-vps.ts",
+    "prices:check": "tsx scripts/check-prices.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
