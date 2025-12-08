@@ -31,7 +31,7 @@ async function fixPizzaSizes() {
       console.log(`Updating: ${pizza.name}`);
 
       // Delete existing variants
-      await prisma.variant.deleteMany({
+      await prisma.productVariant.deleteMany({
         where: {
           productId: pizza.id,
         },
@@ -40,7 +40,7 @@ async function fixPizzaSizes() {
       // Create new variants with all sizes
       const variants = await Promise.all(
         PIZZA_SIZES.map((size) =>
-          prisma.variant.create({
+          prisma.productVariant.create({
             data: {
               productId: pizza.id,
               name: size.name,
