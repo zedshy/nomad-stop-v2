@@ -20,7 +20,8 @@
     "prices:update-all": "tsx scripts/update-all-prices-vps.ts",
     "prices:check": "tsx scripts/check-prices.ts",
     "test:menu-fetch": "tsx scripts/test-menu-fetch.ts",
-    "check:runtime": "tsx scripts/check-runtime-prices.ts"
+    "check:runtime": "tsx scripts/check-runtime-prices.ts",
+    "pizza:fix-sizes": "tsx scripts/fix-pizza-sizes.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

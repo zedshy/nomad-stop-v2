@@ -93,9 +93,24 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Price - prominent */}
         <div className="mb-3">
           {product.variants.length > 1 ? (
-            <span className="text-xl md:text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
-              £{(Math.min(...product.variants.map(v => v.price)) / 100).toFixed(2)}
-            </span>
+            <div>
+              <div className="text-xl md:text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
+                From £{(Math.min(...product.variants.map(v => v.price)) / 100).toFixed(2)}
+              </div>
+              {/* Show size options for pizzas */}
+              {product.category === 'Pizza' && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {product.variants.map((variant) => (
+                    <span
+                      key={variant.id}
+                      className="text-[10px] md:text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-300 border border-gray-600"
+                    >
+                      {variant.name} £{(variant.price / 100).toFixed(2)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <span className="text-xl md:text-2xl font-bold text-amber-600" style={{color: '#FFD500'}}>
               £{(displayPrice / 100).toFixed(2)}
