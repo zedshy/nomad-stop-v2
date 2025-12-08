@@ -4,6 +4,10 @@ import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
 const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function buildMockCategories() {
   return MOCK_PRODUCTS.reduce<Record<string, typeof MOCK_PRODUCTS>>((acc, product) => {
     if (!acc[product.category]) {
