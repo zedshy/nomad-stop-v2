@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { voidAuth } from '@/lib/worldpay';
 
 const DISABLE_DB = process.env.DISABLE_DB === 'true';
 let prisma: PrismaClient | null = null;
@@ -30,9 +31,12 @@ export async function POST(
       );
     }
 
-    // Get order
+    // Get order with payment
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        payment: true,
+      },
     });
 
     if (!order) {
@@ -47,6 +51,30 @@ export async function POST(
         { error: 'Order is already rejected' },
         { status: 400 }
       );
+    }
+
+    // If payment exists and is still authorized, void it in Worldpay
+    if (order.payment && order.payment.status === 'authorized' && order.payment.worldpayRef) {
+      try {
+        const voidResult = await voidAuth(order.payment.worldpayRef);
+        
+        if (voidResult.success) {
+          // Update payment status to voided
+          await prisma.payment.update({
+            where: { id: order.payment.id },
+            data: {
+              status: 'voided',
+            },
+          });
+        } else {
+          console.error('Failed to void payment in Worldpay:', voidResult.error);
+          // Continue with order rejection even if void fails
+          // The payment authorization will expire naturally
+        }
+      } catch (voidError) {
+        console.error('Error voiding payment in Worldpay:', voidError);
+        // Continue with order rejection even if void fails
+      }
     }
 
     // Update order status to rejected

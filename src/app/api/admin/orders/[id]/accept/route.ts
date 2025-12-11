@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { capture } from '@/lib/worldpay';
 
 const DISABLE_DB = process.env.DISABLE_DB === 'true';
 let prisma: PrismaClient | null = null;
@@ -31,11 +32,12 @@ export async function POST(
       );
     }
 
-    // Get order with items
+    // Get order with items and payment
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         items: true,
+        payment: true,
       },
     });
 
@@ -51,6 +53,31 @@ export async function POST(
         { error: 'Order is already accepted' },
         { status: 400 }
       );
+    }
+
+    // If payment exists and is still authorized, capture it in Worldpay
+    if (order.payment && order.payment.status === 'authorized' && order.payment.worldpayRef) {
+      try {
+        const captureResult = await capture(order.payment.worldpayRef, order.payment.amount);
+        
+        if (captureResult.success) {
+          // Update payment status to captured
+          await prisma.payment.update({
+            where: { id: order.payment.id },
+            data: {
+              status: 'captured',
+              capturedAt: captureResult.capturedAt || new Date(),
+            },
+          });
+        } else {
+          console.error('Failed to capture payment in Worldpay:', captureResult.error);
+          // Continue with order acceptance even if capture fails
+          // The payment is still authorized and can be captured manually later
+        }
+      } catch (captureError) {
+        console.error('Error capturing payment in Worldpay:', captureError);
+        // Continue with order acceptance even if capture fails
+      }
     }
 
     // Update order status to captured (accepted)
