@@ -209,3 +209,106 @@ If you have any questions, please contact us at your convenience.
   }
 }
 
+export async function sendOrderRejectionEmail(data: OrderEmailData): Promise<boolean> {
+  try {
+    const transporter = createTransporter();
+    
+    if (!transporter) {
+      console.log('Email not sent - SMTP not configured. Order details:', {
+        orderId: data.orderId,
+        customerEmail: data.customerEmail,
+      });
+      return false;
+    }
+
+    // Email content
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #dc2626; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+            .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 4px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="color: #fff; margin: 0;">Order Cancelled</h1>
+              <p style="color: #fff; margin: 10px 0 0 0;">We're sorry, ${data.customerName}</p>
+            </div>
+            <div class="content">
+              <div class="order-details">
+                <h2 style="margin-top: 0;">Order Details</h2>
+                <p><strong>Order Number:</strong> ${data.orderNumber}</p>
+                <p><strong>Order Date:</strong> ${new Date().toLocaleDateString('en-GB', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}</p>
+                
+                <p>Unfortunately, we are unable to fulfill your order at this time. Your payment has been voided and you will not be charged.</p>
+                
+                <p>If you have any questions or would like to place a new order, please contact us:</p>
+                <p><strong>Phone:</strong> ${data.phone}</p>
+                
+                <p>We apologize for any inconvenience and hope to serve you in the future.</p>
+              </div>
+              
+              <p style="margin-top: 20px;">
+                <strong>Restaurant Address:</strong><br>
+                ${config.restaurant.name}<br>
+                ${config.restaurant.address}
+              </p>
+            </div>
+            <div class="footer">
+              <p>${config.restaurant.name} - We're here to help!</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const emailText = `
+Order Cancelled
+
+We're sorry, ${data.customerName}!
+
+Order Details:
+- Order Number: ${data.orderNumber}
+- Order Date: ${new Date().toLocaleDateString('en-GB')}
+
+Unfortunately, we are unable to fulfill your order at this time. Your payment has been voided and you will not be charged.
+
+If you have any questions or would like to place a new order, please contact us.
+
+Restaurant Address:
+${config.restaurant.name}
+${config.restaurant.address}
+
+We apologize for any inconvenience and hope to serve you in the future.
+    `;
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || `"${config.restaurant.name}" <${process.env.SMTP_USER}>`,
+      to: data.customerEmail,
+      subject: `Order Cancelled - ${data.orderNumber} - ${config.restaurant.name}`,
+      text: emailText,
+      html: emailHtml,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Order rejection email sent:', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Failed to send order rejection email:', error);
+    return false;
+  }
+}
+

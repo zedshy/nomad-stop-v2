@@ -16,6 +16,7 @@ const CreateIntentSchema = z.object({
     quantity: z.number(),
     addons: z.array(z.string()).optional(),
     allergens: z.string().optional(),
+    notes: z.string().optional(),
   })),
   fulfilment: z.enum(['pickup', 'delivery']),
   customer: z.object({
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
               quantity: item.quantity,
               addons: item.addons || [],
               allergens: item.allergens || '',
+              notes: item.notes || null,
             })),
           },
         },

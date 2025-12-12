@@ -170,3 +170,4 @@ If you encounter errors:
 3. Check that Prisma client is generated: `npx prisma generate`
 4. Review the error messages in the console output
 
+

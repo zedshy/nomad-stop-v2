@@ -43,3 +43,4 @@ echo ""
 echo "📋 Checking recent logs for database connection..."
 pm2 logs nomad-stop --lines 10 --nostream | grep -i "database\|error\|mock" || echo "No recent errors"
 
+

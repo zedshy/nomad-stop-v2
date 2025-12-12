@@ -1,0 +1,47 @@
+#!/bin/bash
+# Simple VPS Commands - Copy and paste these ONE BY ONE
+# Open terminal in Cursor: Press Ctrl+` or View → Terminal
+
+echo "📋 VPS Commands to Run"
+echo "======================"
+echo ""
+echo "1. First, SSH into your VPS:"
+echo "   ssh nomadadmin@92.205.231.55"
+echo "   Password: Nomad133@"
+echo ""
+echo "2. Once connected, run these commands one by one:"
+echo ""
+echo "   # Go to project directory"
+echo "   cd /var/www/nomad-stop"
+echo ""
+echo "   # Check PM2 status"
+echo "   pm2 status"
+echo ""
+echo "   # Check logs"
+echo "   pm2 logs nomad-stop --lines 50"
+echo ""
+echo "   # If app is not running, start it"
+echo "   pm2 start ecosystem.config.js"
+echo ""
+echo "   # Save PM2 configuration"
+echo "   pm2 save"
+echo ""
+echo "   # Check status again"
+echo "   pm2 status"
+echo ""
+echo "   # Check if port 3000 is listening"
+echo "   sudo netstat -tuln | grep 3000"
+echo ""
+echo "   # Check environment variables"
+echo "   cat .env | grep DISABLE_DB"
+echo ""
+echo "3. If app shows errors, check logs:"
+echo "   pm2 logs nomad-stop --lines 100"
+echo ""
+echo "4. To restart Nginx:"
+echo "   sudo systemctl restart nginx"
+echo "   sudo systemctl status nginx"
+
+
+
+

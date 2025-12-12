@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { voidAuth } from '@/lib/worldpay';
+import { sendOrderRejectionEmail } from '@/lib/email';
 
 const DISABLE_DB = process.env.DISABLE_DB === 'true';
 let prisma: PrismaClient | null = null;
@@ -83,9 +84,45 @@ export async function POST(
       data: {
         status: 'rejected',
       },
+      include: {
+        items: true,
+      },
     });
 
-    // TODO: Send rejection email to customer if needed
+    // Send rejection email to customer
+    if (updatedOrder.customerEmail) {
+      try {
+        const orderNumber = `#NS-${updatedOrder.createdAt.getFullYear()}-${updatedOrder.id.slice(0, 8).toUpperCase()}`;
+        
+        await sendOrderRejectionEmail({
+          orderId: updatedOrder.id,
+          orderNumber,
+          customerName: updatedOrder.customerName,
+          customerEmail: updatedOrder.customerEmail,
+          items: updatedOrder.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          subtotal: updatedOrder.subtotal,
+          deliveryFee: updatedOrder.deliveryFee,
+          tip: updatedOrder.tip,
+          total: updatedOrder.total,
+          fulfilment: updatedOrder.fulfilment,
+          slotStart: updatedOrder.slotStart || undefined,
+          slotEnd: updatedOrder.slotEnd || undefined,
+          address: updatedOrder.addressLine1 ? {
+            line1: updatedOrder.addressLine1,
+            city: updatedOrder.city || '',
+            postcode: updatedOrder.postcode || '',
+          } : undefined,
+          phone: updatedOrder.customerPhone,
+        });
+      } catch (emailError) {
+        // Log email error but don't fail the order rejection
+        console.error('Failed to send order rejection email:', emailError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

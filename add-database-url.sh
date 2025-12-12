@@ -54,3 +54,4 @@ echo ""
 echo "🔍 Current .env file (first 10 lines):"
 head -10 .env
 
+

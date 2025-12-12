@@ -1,0 +1,42 @@
+HOW TO OPEN TERMINAL IN CURSOR - STEP BY STEP
+==============================================
+
+METHOD 1: Using the Menu (Easiest)
+-----------------------------------
+1. Look at the TOP of your Cursor window
+2. Click on the word "View" in the menu bar
+3. In the dropdown menu, click "Terminal" or "Integrated Terminal"
+4. A panel will appear at the BOTTOM of your window
+5. That's your terminal!
+
+METHOD 2: Keyboard Shortcut
+----------------------------
+1. Press: Control + ` (backtick)
+   - The backtick key (`) is above the Tab key
+   - On some keyboards, it's left of the number 1 key
+2. The terminal will open at the bottom
+
+METHOD 3: Command Palette
+--------------------------
+1. Press: Cmd + Shift + P (on Mac) or Ctrl + Shift + P (Windows)
+2. Type: "terminal"
+3. Select: "Terminal: Create New Terminal"
+4. Terminal opens at the bottom
+
+WHERE TO LOOK:
+--------------
+- The terminal opens at the VERY BOTTOM of your Cursor window
+- It's below your code editor
+- It might be collapsed - look for a thin gray bar at the bottom
+- Click that bar to expand the terminal
+
+WHAT YOU'LL SEE:
+----------------
+Once open, you'll see something like:
+  zeshaanqureshi@MacBookPro Nomad-Stop-NextJS %
+
+Then you can type commands!
+
+
+
+

@@ -9,6 +9,7 @@ export interface CartItem {
   quantity: number;
   addons?: string[];
   allergens?: string;
+  notes?: string;
 }
 
 interface CartStore {
@@ -37,6 +38,7 @@ interface CartStore {
   // Actions
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
   updateQuantity: (id: string, quantity: number) => void;
+  updateItemNotes: (id: string, notes: string) => void;
   removeItem: (id: string) => void;
   clear: () => void;
   setFulfilment: (fulfilment: 'pickup' | 'delivery') => void;
@@ -105,6 +107,14 @@ export const useCartStore = create<CartStore>()(
         set({
           items: get().items.map((item) =>
             item.id === id ? { ...item, quantity } : item
+          ),
+        });
+      },
+
+      updateItemNotes: (id, notes) => {
+        set({
+          items: get().items.map((item) =>
+            item.id === id ? { ...item, notes } : item
           ),
         });
       },

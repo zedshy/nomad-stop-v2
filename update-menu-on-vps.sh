@@ -34,3 +34,4 @@ pm2 restart nomad-stop
 echo ""
 echo "✅ Done! Check your website to see the updated prices."
 
+

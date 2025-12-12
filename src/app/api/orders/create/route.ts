@@ -37,12 +37,13 @@ export async function POST(request: NextRequest) {
         serviceFee: 0, // No service fee currently
         total: orderData.total + (orderData.fulfilment === 'delivery' ? 299 : 0) + Math.round(orderData.total * (orderData.tipPercent / 100)),
         items: {
-          create: orderData.items.map((item: {id: string; name: string; price: number; quantity: number; allergens?: string}) => ({
+          create: orderData.items.map((item: {id: string; name: string; price: number; quantity: number; allergens?: string; notes?: string}) => ({
             sku: item.id,
             name: item.name,
             price: item.price,
             quantity: item.quantity,
             allergens: item.allergens || '',
+            notes: item.notes || null,
           }))
         }
       },

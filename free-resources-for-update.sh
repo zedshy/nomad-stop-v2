@@ -79,3 +79,4 @@ echo "   2. Stop PM2 app: pm2 stop all"
 echo "   3. Run price updates"
 echo "   4. Restart services: pm2 start all && sudo systemctl start fail2ban"
 
+

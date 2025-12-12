@@ -4,10 +4,13 @@ import { useCartStore } from '@/stores/cart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function CartPage() {
-  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, clear, promoCode } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, clear, promoCode, updateItemNotes } = useCartStore();
   
   // Calculate totals - these will update when items change
   // Zustand tracks items, so when items change, this component re-renders
@@ -95,6 +98,19 @@ export default function CartPage() {
                                   </div>
                                 </div>
                               )}
+                              <div className="mt-3">
+                                <Label htmlFor={`notes-${index}`} className="text-xs text-gray-400 mb-1 block">
+                                  Special Instructions (Optional)
+                                </Label>
+                                <Input
+                                  id={`notes-${index}`}
+                                  type="text"
+                                  placeholder="e.g., No onions, extra spicy"
+                                  value={item.notes || ''}
+                                  onChange={(e) => updateItemNotes(item.id, e.target.value)}
+                                  className="bg-gray-700 border-gray-600 text-white text-sm h-9 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                                />
+                              </div>
                             </div>
                             <div className="text-right ml-4">
                               <p className="font-semibold text-amber-600 text-xl" style={{color: '#FFD500'}}>

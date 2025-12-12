@@ -63,3 +63,4 @@ echo "   3. Copy the password"
 echo "   4. Edit .env: nano .env"
 echo "   5. Replace YOUR_PASSWORD with the actual password"
 
+

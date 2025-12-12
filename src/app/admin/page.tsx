@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 // DialogTrigger removed - not used
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Clock, MapPin, Phone, Mail, RefreshCw, LogOut, TrendingUp, Package, DollarSign, Users, ShoppingCart, Plus, Edit, Trash2, Tag, UtensilsCrossed, Lock, Eye, EyeOff, ChefHat, Settings, UserPlus, Key } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, MapPin, Phone, Mail, RefreshCw, LogOut, TrendingUp, Package, DollarSign, Users, ShoppingCart, Plus, Edit, Trash2, Tag, UtensilsCrossed, Lock, Eye, EyeOff, ChefHat, Settings, UserPlus, Key, Printer } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -28,7 +28,7 @@ interface Order {
   city?: string;
   postcode?: string;
   notes?: string;
-  items: Array<{name: string; quantity: number; price: number}>;
+  items: Array<{name: string; quantity: number; price: number; notes?: string}>;
   subtotal: number;
   deliveryFee: number;
   tip: number;
@@ -1270,7 +1270,112 @@ export default function AdminDashboard() {
                             </SheetTrigger>
                             <SheetContent className="bg-gray-800 border-gray-700 w-full sm:max-w-lg overflow-y-auto">
                               <SheetHeader className="border-b border-gray-700 pb-4 mb-6">
-                                <SheetTitle className="text-xl sm:text-2xl font-bold text-white">Order Details</SheetTitle>
+                                <div className="flex items-center justify-between">
+                                  <SheetTitle className="text-xl sm:text-2xl font-bold text-white">Order Details</SheetTitle>
+                                  <Button
+                                    onClick={() => {
+                                      const printWindow = window.open('', '_blank');
+                                      if (printWindow && selectedOrder) {
+                                        const orderNumber = `#NS-${new Date(selectedOrder.createdAt).getFullYear()}-${selectedOrder.id.slice(0, 8).toUpperCase()}`;
+                                        printWindow.document.write(`
+                                          <!DOCTYPE html>
+                                          <html>
+                                            <head>
+                                              <title>Order ${orderNumber}</title>
+                                              <style>
+                                                body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+                                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
+                                                .section { margin-bottom: 20px; }
+                                                .section h3 { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
+                                                table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                                                table th, table td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                                                .total { font-size: 18px; font-weight: bold; margin-top: 10px; }
+                                                .notes { font-style: italic; color: #666; font-size: 12px; }
+                                                @media print {
+                                                  body { margin: 0; }
+                                                  .no-print { display: none; }
+                                                }
+                                              </style>
+                                            </head>
+                                            <body>
+                                              <div class="header">
+                                                <h1>Nomad Stop</h1>
+                                                <h2>Order ${orderNumber}</h2>
+                                                <p>${new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                                              </div>
+                                              
+                                              <div class="section">
+                                                <h3>Customer Information</h3>
+                                                <p><strong>Name:</strong> ${selectedOrder.customerName}</p>
+                                                <p><strong>Phone:</strong> ${selectedOrder.customerPhone}</p>
+                                                ${selectedOrder.customerEmail ? `<p><strong>Email:</strong> ${selectedOrder.customerEmail}</p>` : ''}
+                                                ${selectedOrder.fulfilment === 'delivery' && selectedOrder.addressLine1 ? `
+                                                  <p><strong>Address:</strong> ${selectedOrder.addressLine1}${selectedOrder.city ? ', ' + selectedOrder.city : ''}${selectedOrder.postcode ? ' ' + selectedOrder.postcode : ''}</p>
+                                                ` : ''}
+                                                <p><strong>Type:</strong> ${selectedOrder.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+                                                ${selectedOrder.slotStart && selectedOrder.slotEnd ? `<p><strong>Time Slot:</strong> ${selectedOrder.slotStart} - ${selectedOrder.slotEnd}</p>` : ''}
+                                              </div>
+                                              
+                                              <div class="section">
+                                                <h3>Order Items</h3>
+                                                <table>
+                                                  <thead>
+                                                    <tr>
+                                                      <th>Item</th>
+                                                      <th>Qty</th>
+                                                      <th>Price</th>
+                                                      <th>Total</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody>
+                                                    ${selectedOrder.items.map((item: any) => `
+                                                      <tr>
+                                                        <td>${item.name}${item.notes ? `<br><span class="notes">Note: ${item.notes}</span>` : ''}</td>
+                                                        <td>${item.quantity}</td>
+                                                        <td>£${(item.price / 100).toFixed(2)}</td>
+                                                        <td>£${((item.price * item.quantity) / 100).toFixed(2)}</td>
+                                                      </tr>
+                                                    `).join('')}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                              
+                                              <div class="section">
+                                                <h3>Pricing Summary</h3>
+                                                <p>Subtotal: £${(selectedOrder.subtotal / 100).toFixed(2)}</p>
+                                                ${selectedOrder.deliveryFee > 0 ? `<p>Delivery Fee: £${(selectedOrder.deliveryFee / 100).toFixed(2)}</p>` : ''}
+                                                ${selectedOrder.tip > 0 ? `<p>Tip: £${(selectedOrder.tip / 100).toFixed(2)}</p>` : ''}
+                                                <p class="total">Total: £${(selectedOrder.total / 100).toFixed(2)}</p>
+                                              </div>
+                                              
+                                              ${selectedOrder.notes ? `
+                                                <div class="section">
+                                                  <h3>Order Notes</h3>
+                                                  <p>${selectedOrder.notes}</p>
+                                                </div>
+                                              ` : ''}
+                                              
+                                              <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+                                                <p>Thank you for your order!</p>
+                                                <p>Nomad Stop - 133 High Street, Staines-upon-Thames, TW18 4PD</p>
+                                              </div>
+                                            </body>
+                                          </html>
+                                        `);
+                                        printWindow.document.close();
+                                        printWindow.focus();
+                                        setTimeout(() => {
+                                          printWindow.print();
+                                        }, 250);
+                                      }
+                                    }}
+                                    className="bg-amber-600 hover:bg-amber-700 text-black font-semibold"
+                                    style={{backgroundColor: '#FFD500'}}
+                                  >
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    Print
+                                  </Button>
+                                </div>
                               </SheetHeader>
                               {selectedOrder && (
                                 <div className="space-y-4 sm:space-y-6 text-sm sm:text-base">
@@ -1358,6 +1463,9 @@ export default function AdminDashboard() {
                                           <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-medium text-white">{item.name}</p>
                                             <p className="text-xs text-gray-400 mt-0.5">Quantity: {item.quantity}</p>
+                                            {item.notes && (
+                                              <p className="text-xs text-amber-400 mt-1 italic">Note: {item.notes}</p>
+                                            )}
                                           </div>
                                           <p className="text-xs sm:text-sm font-semibold text-white ml-2">
                                             £{((item.price * item.quantity) / 100).toFixed(2)}

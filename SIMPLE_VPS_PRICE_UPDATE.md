@@ -104,3 +104,4 @@ pm2 restart nomad-stop
 
 If SQL continues to fail, update prices through the admin panel at `/admin` - it's slower but more reliable.
 
+

@@ -326,6 +326,7 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           addons: item.addons || [],
           allergens: item.allergens || '',
+          notes: item.notes || undefined,
         })),
         customer: { name: formData.name, phone: formData.phone, email: formData.email },
         fulfilment: formData.fulfilment,

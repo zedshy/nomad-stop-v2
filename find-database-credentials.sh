@@ -66,3 +66,4 @@ echo "  - cPanel → Databases → PostgreSQL Databases"
 echo "  - Hosting → Databases"
 echo ""
 
+

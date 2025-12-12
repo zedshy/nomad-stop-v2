@@ -33,3 +33,4 @@ echo ""
 echo "📋 Recent logs:"
 pm2 logs nomad-stop --lines 20 --nostream
 
+

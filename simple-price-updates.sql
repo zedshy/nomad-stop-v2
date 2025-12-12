@@ -161,3 +161,4 @@ WHERE product_variants."productId" = products.id
   AND products.name = 'Spicy Wings (6pcs)' 
   AND product_variants.name = 'Standard';
 
+

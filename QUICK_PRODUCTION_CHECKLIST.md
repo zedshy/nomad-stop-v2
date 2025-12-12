@@ -237,3 +237,5 @@ Once all checkboxes above are checked, your Nomad Stop website is fully operatio
 4. Admin accepts order →
 5. Customer receives email confirmation ✓
 
+
+

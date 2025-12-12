@@ -23,3 +23,4 @@ mkdir -p "$TMPDIR"
 # Run the update script with DATABASE_URL explicitly set
 DATABASE_URL="$DATABASE_URL" npm run prices:update-all
 
+

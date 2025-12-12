@@ -1,0 +1,70 @@
+# Price Update Template
+# Copy this format and fill in the items that need price changes
+# Format: Product Name | Variant Name | New Price
+# Example: Kabuli Pilau (Lamb Shank) | Standard | 15.99
+
+# Afghan Specials
+# Kabuli Pilau (Lamb Shank) | Standard | 
+# Chicken Biryani | Standard | 
+# Lamb Biryani | Standard | 
+# Mantu | Standard | 
+# Bolani | Standard | 
+
+# Karahi
+# Lamb Karahi | Standard | 
+# Mix Karahi (Lamb + Chicken) | Standard | 
+# Chicken Karahi | Mild | 
+# Chicken Karahi | Spicy | 
+# Paneer Karahi | Standard | 
+# Vegetable Karahi | Standard | 
+
+# Doner & Grill
+# Lamb Chops (4pcs) | Standard | 
+# Chicken Tikka | Standard | 
+# Lamb Doner | Standard | 
+# Mixed Doner | Standard | 
+# Chicken Doner | Standard | 
+# Seekh Kebab (2pcs) | Standard | 
+
+# Pizza - 10"
+# Margherita | 10" | 
+# Pepperoni Pizza | 10" | 
+# Chicken Tikka Pizza | 10" | 
+# Vegetarian Supreme | 10" | 
+# Afghan Special Pizza (Lamb & Chilli) | 10" | 
+
+# Pizza - 12"
+# Margherita | 12" | 
+# Pepperoni Pizza | 12" | 
+# Chicken Tikka Pizza | 12" | 
+# Vegetarian Supreme | 12" | 
+# Afghan Special Pizza (Lamb & Chilli) | 12" | 
+
+# Deals
+# Afghan Family Platter | Standard | 
+# Nomad's Deal 1 | Standard | 
+# Nomad's Deal 2 | Standard | 
+# Nomad's Deal 3 | Standard | 
+# Nomad's Deal 4 | Standard | 
+
+# Sides
+# Spicy Wings (6pcs) | Standard | 
+# Cheesy Chips | Standard | 
+# Spicy Fries | Standard | 
+# Garlic Bread | Standard | 
+# Salad Box | Standard | 
+# Chips | Standard | 
+
+# Desserts
+# Chocolate Fudge Cake | Standard | 
+# Warm Cookies (4pcs) | Standard | 
+# Baklava (2pcs) | Standard | 
+# Gulab Jamun | Standard | 
+
+# Drinks
+# Coca-Cola | Standard | 
+# Fanta Orange | Standard | 
+# Sprite | Standard | 
+# Water | Standard | 
+
+

@@ -74,3 +74,6 @@ pm2 status
 ⚠️ **Database connection needs fixing** for admin features to work fully
 ⚠️ **DATABASE_URL format needs correction** in .env
 
+
+
+
