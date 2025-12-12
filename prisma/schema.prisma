@@ -16,8 +16,8 @@ model Product {
   popular     Boolean          @default(false)
   sortOrder   Int              @default(0)
   imageUrl    String?
-  isMeal      Boolean          @default(false)
-  mealDrinks  Json?
+  isMeal            Boolean          @default(false)
+  mealDrinkCategory String?
   createdAt   DateTime         @default(now())
   allergens   String
   addons      Addon[]

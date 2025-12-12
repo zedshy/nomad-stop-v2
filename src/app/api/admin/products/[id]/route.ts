@@ -77,7 +77,7 @@ export async function PUT(
 
     const { id: productId } = await context.params;
     const data = await request.json();
-    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
+    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, isMeal, mealDrinkCategory, variants, addons } = data;
     
     // Process addons to include isRequired
     const processedAddons = (addons || []).map((addon: any) => ({
@@ -132,8 +132,15 @@ export async function PUT(
         allergens: allergens || '',
         sortOrder: sortOrder !== undefined ? sortOrder : existing.sortOrder || 0,
         imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
+        isMeal: isMeal !== undefined ? isMeal : (existing as any).isMeal || false,
+        mealDrinkCategory: mealDrinkCategory !== undefined ? (mealDrinkCategory || null) : (existing as any).mealDrinkCategory,
         variants: {
-          create: variants || [],
+          create: (variants || []).map((v: any) => ({
+            name: v.name,
+            price: v.price,
+            bases: v.bases || null,
+            toppings: v.toppings || null,
+          })),
         },
         addons: {
           create: processedAddons,

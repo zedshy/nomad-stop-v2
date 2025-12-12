@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     prisma = new PrismaClient();
 
     const data = await request.json();
-    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
+    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, isMeal, mealDrinkCategory, variants, addons } = data;
     
     // Process addons to include isRequired
     const processedAddons = (addons || []).map((addon: any) => ({
@@ -102,8 +102,15 @@ export async function POST(request: NextRequest) {
         allergens: allergens || '',
         sortOrder: sortOrder || 0,
         imageUrl: imageUrl || null,
+        isMeal: isMeal || false,
+        mealDrinkCategory: mealDrinkCategory || null,
         variants: {
-          create: variants || [],
+          create: (variants || []).map((v: any) => ({
+            name: v.name,
+            price: v.price,
+            bases: v.bases || null,
+            toppings: v.toppings || null,
+          })),
         },
         addons: {
           create: processedAddons,

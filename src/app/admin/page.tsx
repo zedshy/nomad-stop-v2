@@ -48,8 +48,12 @@ interface Product {
   category: string;
   popular: boolean;
   allergens: string;
-  variants: Array<{ id: string; name: string; price: number }>;
-  addons: Array<{ id: string; name: string; price: number }>;
+  sortOrder: number;
+  imageUrl: string | null;
+  isMeal: boolean;
+  mealDrinkCategory: string | null;
+  variants: Array<{ id: string; name: string; price: number; bases?: any; toppings?: any }>;
+  addons: Array<{ id: string; name: string; price: number; isRequired?: boolean }>;
 }
 
 interface PromoCode {
@@ -124,7 +128,9 @@ export default function AdminDashboard() {
     allergens: '',
     sortOrder: 0,
     imageUrl: '',
-    variants: [] as Array<{ id?: string; name: string; price: string }>,
+    isMeal: false,
+    mealDrinkCategory: '',
+    variants: [] as Array<{ id?: string; name: string; price: string; bases?: any; toppings?: any }>,
     addons: [] as Array<{ id?: string; name: string; price: string; isRequired?: boolean }>,
   });
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -753,9 +759,13 @@ export default function AdminDashboard() {
         allergens: productForm.allergens || '',
         sortOrder: productForm.sortOrder || 0,
         imageUrl: productForm.imageUrl || null,
+        isMeal: productForm.isMeal || false,
+        mealDrinkCategory: productForm.isMeal ? (productForm.mealDrinkCategory || null) : null,
         variants: productForm.variants.map(v => ({
           name: v.name,
           price: Math.round(parseFloat(v.price) * 100), // Convert to pence
+          bases: v.bases || null,
+          toppings: v.toppings || null,
         })),
         addons: productForm.addons.map(a => ({
           name: a.name,
@@ -990,6 +1000,8 @@ export default function AdminDashboard() {
       allergens: '',
       sortOrder: 0,
       imageUrl: '',
+      isMeal: false,
+      mealDrinkCategory: '',
       variants: [],
       addons: [],
     });
@@ -1026,8 +1038,16 @@ export default function AdminDashboard() {
         allergens: product.allergens || '',
         sortOrder: (product as any).sortOrder || 0,
         imageUrl: (product as any).imageUrl || '',
+        isMeal: (product as any).isMeal || false,
+        mealDrinkCategory: (product as any).mealDrinkCategory || '',
         variants: Array.isArray(product.variants) 
-          ? product.variants.map(v => ({ id: v.id, name: v.name, price: (v.price / 100).toFixed(2) }))
+          ? product.variants.map(v => ({ 
+              id: v.id, 
+              name: v.name, 
+              price: (v.price / 100).toFixed(2),
+              bases: (v as any).bases || null,
+              toppings: (v as any).toppings || null,
+            }))
           : [],
         addons: Array.isArray(product.addons) 
           ? product.addons.map(a => ({ id: a.id, name: a.name, price: (a.price / 100).toFixed(2), isRequired: (a as any).isRequired || false }))
@@ -2521,6 +2541,50 @@ export default function AdminDashboard() {
                     </div>
                   )}
                 </div>
+                
+                {/* Meal Option */}
+                <div className="space-y-4 pt-4 border-t border-gray-700/50">
+                  <div className="bg-gray-700/50 border border-gray-600 rounded-lg p-4">
+                    <label className="flex items-center space-x-3 cursor-pointer mb-4">
+                      <input
+                        type="checkbox"
+                        checked={productForm.isMeal}
+                        onChange={(e) => setProductForm({...productForm, isMeal: e.target.checked, mealDrinkCategory: e.target.checked ? productForm.mealDrinkCategory : ''})}
+                        className="w-5 h-5 rounded border-gray-600 bg-gray-700 checked:bg-amber-600"
+                      />
+                      <div>
+                        <span className="text-white font-medium block">🍽️ Combo Meal</span>
+                        <span className="text-gray-400 text-xs">Allow customers to choose a drink with this item</span>
+                      </div>
+                    </label>
+                    {productForm.isMeal && (
+                      <div className="mt-4">
+                        <Label htmlFor="mealDrinkCategory" className="text-gray-300 text-sm font-medium mb-2 block">
+                          Drink Category
+                        </Label>
+                        <Select 
+                          value={productForm.mealDrinkCategory} 
+                          onValueChange={(value) => setProductForm({...productForm, mealDrinkCategory: value})}
+                        >
+                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white h-11 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all">
+                            <SelectValue placeholder="Select drink category" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-600">
+                            {allCategories.filter(cat => cat.toLowerCase().includes('drink') || cat.toLowerCase().includes('beverage')).map((cat) => (
+                              <SelectItem key={cat} value={cat} className="text-white">
+                                {cat}
+                              </SelectItem>
+                            ))}
+                            {allCategories.filter(cat => !cat.toLowerCase().includes('drink') && !cat.toLowerCase().includes('beverage')).length === 0 && (
+                              <SelectItem value="Drinks" className="text-white">Drinks</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-gray-400 text-xs mt-2">Customers can choose any drink from this category</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
               {/* Pricing Section */}
@@ -2551,44 +2615,87 @@ export default function AdminDashboard() {
                 <div className="space-y-3">
                   {productForm.variants.map((variant, idx) => (
                     <div key={idx} className="bg-gray-700/30 border border-gray-600 rounded-lg p-4">
-                      <div className="flex gap-3 items-center">
-                        <div className="flex-1">
-                          <Label className="text-gray-300 text-sm font-medium mb-2 block">Size Name</Label>
-                          <Input
-                            placeholder="e.g., Small, Medium, Large, Regular, Family Size"
-                            value={variant.name}
-                            onChange={(e) => {
-                              const newVariants = [...productForm.variants];
-                              newVariants[idx].name = e.target.value;
-                              setProductForm({...productForm, variants: newVariants});
-                            }}
-                            className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                          />
+                      <div className="space-y-3">
+                        <div className="flex gap-3 items-center">
+                          <div className="flex-1">
+                            <Label className="text-gray-300 text-sm font-medium mb-2 block">Size Name</Label>
+                            <Input
+                              placeholder="e.g., Small, Medium, Large, Regular, Family Size"
+                              value={variant.name}
+                              onChange={(e) => {
+                                const newVariants = [...productForm.variants];
+                                newVariants[idx].name = e.target.value;
+                                setProductForm({...productForm, variants: newVariants});
+                              }}
+                              className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                            />
+                          </div>
+                          <div className="w-36">
+                            <Label className="text-gray-300 text-sm font-medium mb-2 block">Price (£)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={variant.price}
+                              onChange={(e) => {
+                                const newVariants = [...productForm.variants];
+                                newVariants[idx].price = e.target.value;
+                                setProductForm({...productForm, variants: newVariants});
+                              }}
+                              className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setProductForm({...productForm, variants: productForm.variants.filter((_, i) => i !== idx)})}
+                            className="border-red-600 text-red-400 hover:bg-red-600/20 h-10 mt-6"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <div className="w-36">
-                          <Label className="text-gray-300 text-sm font-medium mb-2 block">Price (£)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={variant.price}
-                            onChange={(e) => {
-                              const newVariants = [...productForm.variants];
-                              newVariants[idx].price = e.target.value;
-                              setProductForm({...productForm, variants: newVariants});
-                            }}
-                            className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setProductForm({...productForm, variants: productForm.variants.filter((_, i) => i !== idx)})}
-                          className="border-red-600 text-red-400 hover:bg-red-600/20 h-10 mt-6"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {/* Pizza Customization (only for Pizza category) */}
+                        {productForm.category === 'Pizza' && (
+                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-600/50">
+                            <div>
+                              <Label className="text-gray-300 text-sm font-medium mb-2 block">Pizza Bases (JSON)</Label>
+                              <Textarea
+                                placeholder='["Thin Crust", "Thick Crust", "Stuffed Crust"]'
+                                value={variant.bases ? JSON.stringify(variant.bases, null, 2) : ''}
+                                onChange={(e) => {
+                                  const newVariants = [...productForm.variants];
+                                  try {
+                                    newVariants[idx].bases = e.target.value ? JSON.parse(e.target.value) : null;
+                                  } catch {
+                                    // Invalid JSON, keep as is
+                                  }
+                                  setProductForm({...productForm, variants: newVariants});
+                                }}
+                                className="bg-gray-700/50 border-gray-600 text-white text-xs font-mono h-20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                              />
+                              <p className="text-gray-400 text-xs mt-1">Array of base options</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-300 text-sm font-medium mb-2 block">Extra Toppings (JSON)</Label>
+                              <Textarea
+                                placeholder='[{"name": "Extra Cheese", "price": 1.50}, {"name": "Pepperoni", "price": 2.00}]'
+                                value={variant.toppings ? JSON.stringify(variant.toppings, null, 2) : ''}
+                                onChange={(e) => {
+                                  const newVariants = [...productForm.variants];
+                                  try {
+                                    newVariants[idx].toppings = e.target.value ? JSON.parse(e.target.value) : null;
+                                  } catch {
+                                    // Invalid JSON, keep as is
+                                  }
+                                  setProductForm({...productForm, variants: newVariants});
+                                }}
+                                className="bg-gray-700/50 border-gray-600 text-white text-xs font-mono h-20 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                              />
+                              <p className="text-gray-400 text-xs mt-1">Array of topping objects with name and price</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
