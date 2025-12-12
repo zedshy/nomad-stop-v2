@@ -12,7 +12,7 @@
 /build/
 
 # Production
-/server.js
+# /server.js - Now tracked in git
 
 # Misc
 .DS_Store
