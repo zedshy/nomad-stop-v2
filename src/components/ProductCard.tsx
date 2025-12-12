@@ -13,8 +13,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCartStore } from '@/stores/cart';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, ShoppingCart } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface ProductCardProps {
   product: {
@@ -26,10 +28,14 @@ interface ProductCardProps {
     popular: boolean;
     allergens: string;
     imageUrl?: string | null;
+    isMeal?: boolean;
+    mealDrinkCategory?: string | null;
     variants: {
       id: string;
       name: string;
       price: number;
+      bases?: any;
+      toppings?: any;
     }[];
   };
 }
@@ -40,13 +46,62 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogStep, setDialogStep] = useState<'size' | 'pizza' | 'drink'>('size');
+  const [selectedBase, setSelectedBase] = useState<string>('');
+  const [selectedToppings, setSelectedToppings] = useState<Array<{name: string; price: number}>>([]);
+  const [selectedDrink, setSelectedDrink] = useState<{id: string; name: string; price: number} | null>(null);
+  const [availableDrinks, setAvailableDrinks] = useState<Array<{id: string; name: string; price: number}>>([]);
+
+  // Fetch drinks when meal is selected
+  useEffect(() => {
+    if (product.isMeal && product.mealDrinkCategory && dialogStep === 'drink') {
+      fetch(`/api/menu?category=${encodeURIComponent(product.mealDrinkCategory)}`)
+        .then(res => res.json())
+        .then(data => {
+          const drinks = Array.isArray(data) ? data : [];
+          setAvailableDrinks(drinks.flatMap((p: any) => 
+            p.variants?.map((v: any) => ({
+              id: `${p.id}-${v.id}`,
+              name: `${p.name} - ${v.name}`,
+              price: v.price,
+            })) || []
+          ));
+        })
+        .catch(() => setAvailableDrinks([]));
+    }
+  }, [product.isMeal, product.mealDrinkCategory, dialogStep]);
 
   const handleAddToCartClick = () => {
-    // If product has variants, open dialog. Otherwise, add directly
-    if (product.variants.length > 1) {
-      // Reset to first variant when opening dialog
-      setSelectedVariant(product.variants[0]);
+    // Reset all selections
+    setSelectedVariant(product.variants[0]);
+    setSelectedBase('');
+    setSelectedToppings([]);
+    setSelectedDrink(null);
+    setDialogStep('size');
+    
+    // If product has variants, pizza customization, or is a meal, open dialog
+    if (product.variants.length > 1 || (product.category === 'Pizza' && selectedVariant.bases) || product.isMeal) {
       setIsDialogOpen(true);
+    } else {
+      handleAddToCart();
+    }
+  };
+
+  const handleSizeSelected = (variant: typeof product.variants[0]) => {
+    setSelectedVariant(variant);
+    // If pizza with bases, go to pizza step, else if meal, go to drink step, else add to cart
+    if (product.category === 'Pizza' && variant.bases) {
+      setDialogStep('pizza');
+    } else if (product.isMeal) {
+      setDialogStep('drink');
+    } else {
+      handleAddToCart();
+    }
+  };
+
+  const handlePizzaNext = () => {
+    if (product.isMeal) {
+      setDialogStep('drink');
     } else {
       handleAddToCart();
     }
@@ -55,11 +110,35 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = async () => {
     setIsAdding(true);
     
+    // Calculate total price with toppings and drink
+    let totalPrice = selectedVariant.price;
+    selectedToppings.forEach(topping => {
+      totalPrice += Math.round(topping.price * 100); // Convert to pence
+    });
+    if (selectedDrink) {
+      totalPrice += selectedDrink.price;
+    }
+
+    // Build item name with customizations
+    let itemName = product.name;
+    if (selectedVariant.name !== 'Standard') {
+      itemName += ` - ${selectedVariant.name}`;
+    }
+    if (selectedBase) {
+      itemName += ` (${selectedBase})`;
+    }
+    if (selectedToppings.length > 0) {
+      itemName += ` + ${selectedToppings.map(t => t.name).join(', ')}`;
+    }
+    if (selectedDrink) {
+      itemName += ` + ${selectedDrink.name}`;
+    }
+    
     addItem({
       id: product.id,
-      name: product.name,
+      name: itemName,
       variant: selectedVariant.name,
-      price: selectedVariant.price,
+      price: totalPrice,
       allergens: product.allergens,
     });
 
@@ -68,6 +147,11 @@ export default function ProductCard({ product }: ProductCardProps) {
     setTimeout(() => {
       setAdded(false);
       setIsAdding(false);
+      // Reset selections
+      setSelectedBase('');
+      setSelectedToppings([]);
+      setSelectedDrink(null);
+      setDialogStep('size');
     }, 2000);
   };
 
@@ -182,55 +266,173 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Selection Dialog for products with variants */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-md">
+        <DialogContent className="bg-gray-800 border-gray-700 text-white sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">
-              {product.category === 'Drinks' ? 'Select Drink' : 'Select Size'}
+              {dialogStep === 'size' && (product.category === 'Drinks' ? 'Select Drink' : 'Select Size')}
+              {dialogStep === 'pizza' && 'Customize Your Pizza'}
+              {dialogStep === 'drink' && 'Choose Your Drink'}
             </DialogTitle>
             <DialogDescription className="text-gray-300">
-              {product.category === 'Drinks' 
+              {dialogStep === 'size' && (product.category === 'Drinks' 
                 ? `Choose your drink for ${product.name}`
-                : `Choose your preferred size for ${product.name}`}
+                : `Choose your preferred size for ${product.name}`)}
+              {dialogStep === 'pizza' && 'Select base and extra toppings'}
+              {dialogStep === 'drink' && 'Choose a drink to complete your meal'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <div className="grid grid-cols-2 gap-3">
-              {product.variants.map((variant) => (
-                <button
-                  key={variant.id}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedVariant.id === variant.id
-                      ? 'border-amber-600 bg-amber-600/20 text-white'
-                      : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
-                  }`}
-                  style={selectedVariant.id === variant.id ? {borderColor: '#FFD500', backgroundColor: 'rgba(255, 213, 0, 0.2)'} : {}}
-                >
-                  <div className="font-semibold text-lg mb-1">{variant.name}</div>
-                  <div className="text-amber-600 font-bold" style={{color: '#FFD500'}}>
-                    £{(variant.price / 100).toFixed(2)}
+            {/* Size Selection Step */}
+            {dialogStep === 'size' && (
+              <div className="grid grid-cols-2 gap-3">
+                {product.variants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    onClick={() => handleSizeSelected(variant)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      selectedVariant.id === variant.id
+                        ? 'border-amber-600 bg-amber-600/20 text-white'
+                        : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                    }`}
+                    style={selectedVariant.id === variant.id ? {borderColor: '#FFD500', backgroundColor: 'rgba(255, 213, 0, 0.2)'} : {}}
+                  >
+                    <div className="font-semibold text-lg mb-1">{variant.name}</div>
+                    <div className="text-amber-600 font-bold" style={{color: '#FFD500'}}>
+                      £{(variant.price / 100).toFixed(2)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Pizza Customization Step */}
+            {dialogStep === 'pizza' && selectedVariant.bases && (
+              <div className="space-y-4">
+                {/* Base Selection */}
+                <div>
+                  <Label className="text-white mb-2 block">Pizza Base</Label>
+                  <Select value={selectedBase} onValueChange={setSelectedBase}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder="Select base" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-800 border-gray-600">
+                      {(Array.isArray(selectedVariant.bases) ? selectedVariant.bases : []).map((base: string, idx: number) => (
+                        <SelectItem key={idx} value={base} className="text-white">
+                          {base}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Toppings Selection */}
+                {selectedVariant.toppings && Array.isArray(selectedVariant.toppings) && selectedVariant.toppings.length > 0 && (
+                  <div>
+                    <Label className="text-white mb-2 block">Extra Toppings (Optional)</Label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {selectedVariant.toppings.map((topping: any, idx: number) => {
+                        const isSelected = selectedToppings.some(t => t.name === topping.name);
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedToppings(selectedToppings.filter(t => t.name !== topping.name));
+                              } else {
+                                setSelectedToppings([...selectedToppings, {name: topping.name, price: topping.price || 0}]);
+                              }
+                            }}
+                            className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                              isSelected
+                                ? 'border-amber-600 bg-amber-600/20'
+                                : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-white">{topping.name}</span>
+                              <span className="text-amber-600 font-semibold" style={{color: '#FFD500'}}>
+                                +£{((topping.price || 0) / 100).toFixed(2)}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
+
+            {/* Drink Selection Step */}
+            {dialogStep === 'drink' && (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {availableDrinks.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">Loading drinks...</p>
+                ) : (
+                  availableDrinks.map((drink) => (
+                    <button
+                      key={drink.id}
+                      onClick={() => setSelectedDrink(drink)}
+                      className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                        selectedDrink?.id === drink.id
+                          ? 'border-amber-600 bg-amber-600/20'
+                          : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-white">{drink.name}</span>
+                        <span className="text-amber-600 font-semibold" style={{color: '#FFD500'}}>
+                          £{(drink.price / 100).toFixed(2)}
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setIsDialogOpen(false)}
+              onClick={() => {
+                if (dialogStep === 'pizza') {
+                  setDialogStep('size');
+                } else if (dialogStep === 'drink') {
+                  if (product.category === 'Pizza' && selectedVariant.bases) {
+                    setDialogStep('pizza');
+                  } else {
+                    setDialogStep('size');
+                  }
+                } else {
+                  setIsDialogOpen(false);
+                }
+              }}
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
-              Cancel
+              {dialogStep === 'size' ? 'Cancel' : 'Back'}
             </Button>
-            <Button
-              onClick={handleAddToCart}
-              className="bg-amber-600 hover:bg-amber-700 text-black font-semibold"
-              style={{backgroundColor: '#FFD500'}}
-            >
-              Add to Cart
-            </Button>
+            {dialogStep === 'pizza' && (
+              <Button
+                onClick={handlePizzaNext}
+                disabled={!selectedBase}
+                className="bg-amber-600 hover:bg-amber-700 text-black font-semibold disabled:opacity-50"
+                style={{backgroundColor: '#FFD500'}}
+              >
+                {product.isMeal ? 'Next: Choose Drink' : 'Add to Cart'}
+              </Button>
+            )}
+            {(dialogStep === 'size' || dialogStep === 'drink') && (
+              <Button
+                onClick={handleAddToCart}
+                disabled={dialogStep === 'drink' && !selectedDrink}
+                className="bg-amber-600 hover:bg-amber-700 text-black font-semibold disabled:opacity-50"
+                style={{backgroundColor: '#FFD500'}}
+              >
+                Add to Cart
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
