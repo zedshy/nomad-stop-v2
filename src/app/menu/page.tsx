@@ -26,6 +26,13 @@ async function getProductsByCategory() {
   try {
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
+    
+    // Fetch category order
+    const categories = await prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+    });
+    const categoryOrder = categories.map(c => c.name);
+    
     const products = await prisma.product.findMany({
       include: {
         variants: true,
@@ -39,13 +46,29 @@ async function getProductsByCategory() {
 
     await prisma.$disconnect();
 
-    return products.reduce<Record<string, typeof products>>((acc, product) => {
+    const productsByCategory = products.reduce<Record<string, typeof products>>((acc, product) => {
       if (!acc[product.category]) {
         acc[product.category] = [];
       }
       acc[product.category].push(product);
       return acc;
     }, {});
+
+    // Sort categories by order, then add any missing ones
+    const orderedCategories: Record<string, typeof products> = {};
+    categoryOrder.forEach(catName => {
+      if (productsByCategory[catName]) {
+        orderedCategories[catName] = productsByCategory[catName];
+      }
+    });
+    // Add any categories not in the order list
+    Object.keys(productsByCategory).forEach(catName => {
+      if (!orderedCategories[catName]) {
+        orderedCategories[catName] = productsByCategory[catName];
+      }
+    });
+
+    return orderedCategories;
   } catch (error) {
     console.error('Failed to fetch menu products from database. Falling back to mock data.', error);
     return buildMockCategories();

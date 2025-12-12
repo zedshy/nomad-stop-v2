@@ -64,6 +64,13 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json();
     const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
+    
+    // Process addons to include isRequired
+    const processedAddons = (addons || []).map((addon: any) => ({
+      name: addon.name,
+      price: addon.price,
+      isRequired: addon.isRequired || false,
+    }));
 
     // Validate required fields
     if (!name || !slug || !category) {
@@ -99,7 +106,7 @@ export async function POST(request: NextRequest) {
           create: variants || [],
         },
         addons: {
-          create: addons || [],
+          create: processedAddons,
         },
       },
       include: {

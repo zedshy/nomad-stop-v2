@@ -78,6 +78,13 @@ export async function PUT(
     const { id: productId } = await context.params;
     const data = await request.json();
     const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
+    
+    // Process addons to include isRequired
+    const processedAddons = (addons || []).map((addon: any) => ({
+      name: addon.name,
+      price: addon.price,
+      isRequired: addon.isRequired || false,
+    }));
 
     // Check if product exists
     const existing = await prisma.product.findUnique({
@@ -129,7 +136,7 @@ export async function PUT(
           create: variants || [],
         },
         addons: {
-          create: addons || [],
+          create: processedAddons,
         },
       },
       include: {

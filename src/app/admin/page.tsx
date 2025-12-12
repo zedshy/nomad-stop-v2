@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 // DialogTrigger removed - not used
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Clock, MapPin, Phone, Mail, RefreshCw, LogOut, TrendingUp, Package, DollarSign, Users, ShoppingCart, Plus, Edit, Trash2, Tag, UtensilsCrossed, Lock, Eye, EyeOff, ChefHat, Settings, UserPlus, Key, Printer } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, MapPin, Phone, Mail, RefreshCw, LogOut, TrendingUp, Package, DollarSign, Users, ShoppingCart, Plus, Edit, Trash2, Tag, UtensilsCrossed, Lock, Eye, EyeOff, ChefHat, Settings, UserPlus, Key, Printer, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -125,11 +125,16 @@ export default function AdminDashboard() {
     sortOrder: 0,
     imageUrl: '',
     variants: [] as Array<{ id?: string; name: string; price: string }>,
-    addons: [] as Array<{ id?: string; name: string; price: string }>,
+    addons: [] as Array<{ id?: string; name: string; price: string; isRequired?: boolean }>,
   });
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
+  // Category Management State
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>([]);
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
+
   // Admin User Form State
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -353,6 +358,67 @@ export default function AdminDashboard() {
       alert('Failed to fetch products');
     } finally {
       setIsProductsLoading(false);
+    }
+  };
+
+  const fetchCategoryOrder = async () => {
+    try {
+      const response = await fetch('/api/admin/categories');
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+      const data = await response.json();
+      const orderedCategories = data.map((cat: { name: string }) => cat.name);
+      const existingCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+      // Merge: ordered first, then any missing ones
+      const allCategories = [...orderedCategories, ...existingCategories.filter(c => !orderedCategories.includes(c))];
+      setCategoryOrder(allCategories);
+    } catch (error) {
+      console.error('Failed to fetch category order:', error);
+      // Fallback to current categories
+      const existingCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+      setCategoryOrder(existingCategories);
+    }
+  };
+
+  const handleOpenCategoryDialog = () => {
+    fetchCategoryOrder();
+    setCategoryDialogOpen(true);
+  };
+
+  const moveCategory = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...categoryOrder];
+    if (direction === 'up' && index > 0) {
+      [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    } else if (direction === 'down' && index < newOrder.length - 1) {
+      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    }
+    setCategoryOrder(newOrder);
+  };
+
+  const handleSaveCategoryOrder = async () => {
+    setIsSavingCategories(true);
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categories: categoryOrder.map((name, index) => ({ name, sortOrder: index })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save category order');
+      }
+
+      setNotification({ type: 'success', message: 'Category order saved successfully!' });
+      setCategoryDialogOpen(false);
+      fetchProducts(); // Refresh products to reflect new order
+    } catch (error) {
+      console.error('Failed to save category order:', error);
+      setNotification({ type: 'error', message: 'Failed to save category order' });
+    } finally {
+      setIsSavingCategories(false);
     }
   };
 
@@ -694,6 +760,7 @@ export default function AdminDashboard() {
         addons: productForm.addons.map(a => ({
           name: a.name,
           price: Math.round(parseFloat(a.price) * 100), // Convert to pence
+          isRequired: a.isRequired || false,
         })),
       };
 
@@ -963,7 +1030,7 @@ export default function AdminDashboard() {
           ? product.variants.map(v => ({ id: v.id, name: v.name, price: (v.price / 100).toFixed(2) }))
           : [],
         addons: Array.isArray(product.addons) 
-          ? product.addons.map(a => ({ id: a.id, name: a.name, price: (a.price / 100).toFixed(2) }))
+          ? product.addons.map(a => ({ id: a.id, name: a.name, price: (a.price / 100).toFixed(2), isRequired: (a as any).isRequired || false }))
           : [],
       });
     } else {
@@ -1805,15 +1872,26 @@ export default function AdminDashboard() {
                     </CardTitle>
                     <p className="text-gray-400 text-xs sm:text-sm sm:ml-8">Add, edit, or remove items from your menu</p>
                   </div>
-                  <Button
-                    onClick={() => openProductDialog()}
-                    style={{backgroundColor: '#FFD500'}}
-                    className="text-black font-semibold px-4 sm:px-6 h-10 sm:h-11 w-full sm:w-auto flex-shrink-0"
-                  >
-                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    <span className="hidden sm:inline">Add Menu Item</span>
-                    <span className="sm:hidden">Add Item</span>
-                  </Button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={handleOpenCategoryDialog}
+                      variant="outline"
+                      className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white font-semibold px-4 sm:px-6 h-10 sm:h-11 w-full sm:w-auto flex-shrink-0"
+                    >
+                      <GripVertical className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <span className="hidden sm:inline">Reorder Categories</span>
+                      <span className="sm:hidden">Categories</span>
+                    </Button>
+                    <Button
+                      onClick={() => openProductDialog()}
+                      style={{backgroundColor: '#FFD500'}}
+                      className="text-black font-semibold px-4 sm:px-6 h-10 sm:h-11 w-full sm:w-auto flex-shrink-0"
+                    >
+                      <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <span className="hidden sm:inline">Add Menu Item</span>
+                      <span className="sm:hidden">Add Item</span>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -2526,7 +2604,7 @@ export default function AdminDashboard() {
                   </div>
                   <Button
                     type="button"
-                    onClick={() => setProductForm({...productForm, addons: [...productForm.addons, {name: '', price: ''}]})}
+                    onClick={() => setProductForm({...productForm, addons: [...productForm.addons, {name: '', price: '', isRequired: false}]})}
                     className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-semibold shadow-md shadow-amber-500/25 transition-all duration-200 h-10 px-4 text-sm"
                     style={{backgroundColor: '#FFD500'}}
                   >
@@ -2534,48 +2612,66 @@ export default function AdminDashboard() {
                     Add Extra
                   </Button>
                 </div>
-                <p className="text-gray-400 text-sm mb-4">Optional extras customers can add (e.g., Extra cheese, Extra sauce, etc.)</p>
+                <p className="text-gray-400 text-sm mb-4">Add extras customers can choose. Mark as &quot;Required&quot; if customers must select this option.</p>
                 <div className="space-y-3">
                   {productForm.addons.map((addon, idx) => (
                     <div key={idx} className="bg-gray-700/30 border border-gray-600 rounded-lg p-4">
-                      <div className="flex gap-3 items-center">
-                        <div className="flex-1">
-                          <Label className="text-gray-300 text-sm font-medium mb-2 block">Add-on Name</Label>
-                          <Input
-                            placeholder="e.g., Extra Cheese, Extra Sauce, Extra Meat"
-                            value={addon.name}
+                      <div className="space-y-3">
+                        <div className="flex gap-3 items-start">
+                          <div className="flex-1">
+                            <Label className="text-gray-300 text-sm font-medium mb-2 block">Add-on Name</Label>
+                            <Input
+                              placeholder="e.g., Extra Cheese, Extra Sauce, Extra Meat"
+                              value={addon.name}
+                              onChange={(e) => {
+                                const newAddons = [...productForm.addons];
+                                newAddons[idx].name = e.target.value;
+                                setProductForm({...productForm, addons: newAddons});
+                              }}
+                              className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                            />
+                          </div>
+                          <div className="w-36">
+                            <Label className="text-gray-300 text-sm font-medium mb-2 block">Price (£)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={addon.price}
+                              onChange={(e) => {
+                                const newAddons = [...productForm.addons];
+                                newAddons[idx].price = e.target.value;
+                                setProductForm({...productForm, addons: newAddons});
+                              }}
+                              className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setProductForm({...productForm, addons: productForm.addons.filter((_, i) => i !== idx)})}
+                            className="border-red-600 text-red-400 hover:bg-red-600/20 h-10 mt-6"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id={`required-${idx}`}
+                            checked={addon.isRequired || false}
                             onChange={(e) => {
                               const newAddons = [...productForm.addons];
-                              newAddons[idx].name = e.target.value;
+                              newAddons[idx].isRequired = e.target.checked;
                               setProductForm({...productForm, addons: newAddons});
                             }}
-                            className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                            className="w-4 h-4 rounded border-gray-600 bg-gray-700 checked:bg-amber-600"
                           />
+                          <Label htmlFor={`required-${idx}`} className="text-gray-300 text-sm cursor-pointer">
+                            Required (customer must select this)
+                          </Label>
                         </div>
-                        <div className="w-36">
-                          <Label className="text-gray-300 text-sm font-medium mb-2 block">Price (£)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={addon.price}
-                            onChange={(e) => {
-                              const newAddons = [...productForm.addons];
-                              newAddons[idx].price = e.target.value;
-                              setProductForm({...productForm, addons: newAddons});
-                            }}
-                            className="bg-gray-700/50 border-gray-600 text-white h-11 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setProductForm({...productForm, addons: productForm.addons.filter((_, i) => i !== idx)})}
-                          className="border-red-600 text-red-400 hover:bg-red-600/20 h-10 mt-6"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -2605,6 +2701,74 @@ export default function AdminDashboard() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Category Management Dialog */}
+        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+            <DialogHeader className="pb-4 border-b border-gray-700">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <GripVertical className="w-6 h-6" style={{color: '#FFD500'}} />
+                Reorder Categories
+              </DialogTitle>
+              <p className="text-gray-400 text-sm mt-2">
+                Drag categories up or down to change their order on the menu. Categories at the top appear first.
+              </p>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto py-4">
+              {categoryOrder.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No categories found</p>
+              ) : (
+                categoryOrder.map((category, index) => (
+                  <div
+                    key={category}
+                    className="flex items-center gap-3 p-4 bg-gray-700/50 border border-gray-600 rounded-lg"
+                  >
+                    <div className="flex-1 text-white font-medium">{category}</div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => moveCategory(index, 'up')}
+                        disabled={index === 0}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => moveCategory(index, 'down')}
+                        disabled={index === categoryOrder.length - 1}
+                        className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <DialogFooter className="pt-6 border-t border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setCategoryDialogOpen(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveCategoryOrder}
+                disabled={isSavingCategories}
+                style={{backgroundColor: '#FFD500'}}
+                className="text-black font-semibold"
+              >
+                {isSavingCategories ? 'Saving...' : 'Save Order'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
