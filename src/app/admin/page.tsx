@@ -122,6 +122,8 @@ export default function AdminDashboard() {
     category: '',
     popular: false,
     allergens: '',
+    sortOrder: 0,
+    imageUrl: '',
     variants: [] as Array<{ id?: string; name: string; price: string }>,
     addons: [] as Array<{ id?: string; name: string; price: string }>,
   });
@@ -683,6 +685,8 @@ export default function AdminDashboard() {
         category: productForm.category,
         popular: productForm.popular,
         allergens: productForm.allergens || '',
+        sortOrder: productForm.sortOrder || 0,
+        imageUrl: productForm.imageUrl || null,
         variants: productForm.variants.map(v => ({
           name: v.name,
           price: Math.round(parseFloat(v.price) * 100), // Convert to pence
@@ -917,6 +921,8 @@ export default function AdminDashboard() {
       category: '',
       popular: false,
       allergens: '',
+      sortOrder: 0,
+      imageUrl: '',
       variants: [],
       addons: [],
     });
@@ -951,6 +957,8 @@ export default function AdminDashboard() {
         category: product.category,
         popular: product.popular,
         allergens: product.allergens || '',
+        sortOrder: (product as any).sortOrder || 0,
+        imageUrl: (product as any).imageUrl || '',
         variants: Array.isArray(product.variants) 
           ? product.variants.map(v => ({ id: v.id, name: v.name, price: (v.price / 100).toFixed(2) }))
           : [],
@@ -1023,7 +1031,10 @@ export default function AdminDashboard() {
     }, 0),
   };
 
-  const categories = ['Doner & Grill', 'Pizza', 'Karahi', 'Drinks'];
+  // Get unique categories from existing products, plus allow custom input
+  const existingCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  const defaultCategories = ['Doner & Grill', 'Pizza', 'Karahi', 'Drinks', 'Starters', 'Curries', 'Rice Dishes', 'Desserts', 'Beverages'];
+  const allCategories = Array.from(new Set([...defaultCategories, ...existingCategories])).sort();
 
   return (
     <main className="min-h-screen bg-black py-4 sm:py-8">
@@ -2229,18 +2240,27 @@ export default function AdminDashboard() {
                     <Label htmlFor="category" className="text-gray-300 text-sm font-medium mb-2 block">
                       Menu Category <span className="text-red-400">*</span>
                     </Label>
-                    <Select value={productForm.category} onValueChange={(value) => setProductForm({...productForm, category: value})}>
-                      <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white h-11 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all">
-                        <SelectValue placeholder="Choose a category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-600">
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat} className="text-white">
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Select value={productForm.category} onValueChange={(value) => setProductForm({...productForm, category: value})}>
+                        <SelectTrigger className="bg-gray-700/50 border-gray-600 text-white h-11 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all">
+                          <SelectValue placeholder="Choose a category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-600">
+                          {allCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat} className="text-white">
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Or type a new category name"
+                        value={productForm.category}
+                        onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                        className="bg-gray-700/50 border-gray-600 text-white h-10 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                      />
+                      <p className="text-gray-400 text-xs">You can select from existing categories or type a new one</p>
+                    </div>
                   </div>
                   <div className="flex items-end">
                     <div className="w-full bg-gray-700/50 border border-gray-600 rounded-lg p-4">
@@ -2260,7 +2280,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 
-                <div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="allergens" className="text-gray-300 text-sm font-medium mb-2 block">
                       Allergen Information
                     </Label>
@@ -2272,6 +2293,47 @@ export default function AdminDashboard() {
                       placeholder="e.g., Contains gluten, dairy, nuts"
                     />
                     <p className="text-gray-400 text-xs mt-2">Important: List any allergens customers need to know about</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="sortOrder" className="text-gray-300 text-sm font-medium mb-2 block">
+                      Display Order <span className="text-gray-400 text-xs">(lower = appears first)</span>
+                    </Label>
+                    <Input
+                      id="sortOrder"
+                      type="number"
+                      value={productForm.sortOrder}
+                      onChange={(e) => setProductForm({...productForm, sortOrder: parseInt(e.target.value) || 0})}
+                      className="bg-gray-700/50 border-gray-600 text-white h-11 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                      placeholder="0"
+                    />
+                    <p className="text-gray-400 text-xs mt-2">Use this to control item order (e.g., starters: 10, curries: 20)</p>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="imageUrl" className="text-gray-300 text-sm font-medium mb-2 block">
+                    Item Photo URL
+                  </Label>
+                  <Input
+                    id="imageUrl"
+                    type="url"
+                    value={productForm.imageUrl}
+                    onChange={(e) => setProductForm({...productForm, imageUrl: e.target.value})}
+                    className="bg-gray-700/50 border-gray-600 text-white h-11 text-base focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                    placeholder="https://example.com/image.jpg or /images/item.jpg"
+                  />
+                  <p className="text-gray-400 text-xs mt-2">Enter image URL or path (e.g., /images/kabuli-pilau.jpg)</p>
+                  {productForm.imageUrl && (
+                    <div className="mt-3">
+                      <img 
+                        src={productForm.imageUrl} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-600"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               

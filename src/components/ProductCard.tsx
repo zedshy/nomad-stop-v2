@@ -25,6 +25,7 @@ interface ProductCardProps {
     category: string;
     popular: boolean;
     allergens: string;
+    imageUrl?: string | null;
     variants: {
       id: string;
       name: string;
@@ -76,6 +77,20 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow bg-gray-800 border-gray-700">
       <CardContent className="p-3.5 md:p-6">
+        {/* Product Image */}
+        {product.imageUrl && (
+          <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-700">
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
+        
         {/* Title and Popular badge */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <Link href={`/menu#${product.slug}`} className="flex-1 min-w-0">

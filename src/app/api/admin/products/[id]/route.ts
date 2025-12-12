@@ -77,7 +77,7 @@ export async function PUT(
 
     const { id: productId } = await context.params;
     const data = await request.json();
-    const { name, slug, description, category, popular, allergens, variants, addons } = data;
+    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
 
     // Check if product exists
     const existing = await prisma.product.findUnique({
@@ -123,6 +123,8 @@ export async function PUT(
         category,
         popular: popular || false,
         allergens: allergens || '',
+        sortOrder: sortOrder !== undefined ? sortOrder : existing.sortOrder || 0,
+        imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
         variants: {
           create: variants || [],
         },

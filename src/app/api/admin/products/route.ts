@@ -22,9 +22,10 @@ export async function GET() {
         variants: true,
         addons: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     return NextResponse.json(products);
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     prisma = new PrismaClient();
 
     const data = await request.json();
-    const { name, slug, description, category, popular, allergens, variants, addons } = data;
+    const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, variants, addons } = data;
 
     // Validate required fields
     if (!name || !slug || !category) {
@@ -92,6 +93,8 @@ export async function POST(request: NextRequest) {
         category,
         popular: popular || false,
         allergens: allergens || '',
+        sortOrder: sortOrder || 0,
+        imageUrl: imageUrl || null,
         variants: {
           create: variants || [],
         },

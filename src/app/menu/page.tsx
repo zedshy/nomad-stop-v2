@@ -30,9 +30,11 @@ async function getProductsByCategory() {
       include: {
         variants: true,
       },
-      orderBy: {
-        category: 'asc',
-      },
+      orderBy: [
+        { category: 'asc' },
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     await prisma.$disconnect();
