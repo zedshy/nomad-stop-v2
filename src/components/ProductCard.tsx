@@ -61,8 +61,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         .then(res => res.json())
         .then(data => {
           const drinks = Array.isArray(data) ? data : [];
-          setAvailableDrinks(drinks.flatMap((p: any) => 
-            p.variants?.map((v: any) => ({
+          setAvailableDrinks(drinks.flatMap((p: {id: string; variants?: Array<{id: string; name: string; price: number}>}) => 
+            p.variants?.map((v) => ({
               id: `${p.id}-${v.id}`,
               name: `${p.name} - ${v.name}`,
               price: v.price,
