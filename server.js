@@ -2,17 +2,29 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 
+// Read NODE_ENV from environment (PM2 should set this)
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || '0.0.0.0'; // Bind to all interfaces
 const port = parseInt(process.env.PORT || '3000', 10);
 
 console.log(`Starting Next.js server in ${dev ? 'development' : 'production'} mode...`);
+console.log(`NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`Hostname: ${hostname}, Port: ${port}`);
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+console.log('Calling app.prepare()...');
+
+// Add timeout to app.prepare() to catch hanging issues
+const preparePromise = app.prepare();
+const timeoutPromise = new Promise((_, reject) => {
+  setTimeout(() => {
+    reject(new Error('app.prepare() timed out after 60 seconds'));
+  }, 60000);
+});
+
+Promise.race([preparePromise, timeoutPromise]).then(() => {
   console.log('Next.js app prepared successfully');
   
   const server = createServer(async (req, res) => {
