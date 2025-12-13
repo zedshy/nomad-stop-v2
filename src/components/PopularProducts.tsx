@@ -1,33 +1,59 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
 import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
-const DISABLE_DB = process.env.DISABLE_DB === 'true';
-
-async function getPopularProducts() {
-  if (DISABLE_DB) {
-    return MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6);
-  }
-
-  try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    const products = await prisma.product.findMany({
-      where: { popular: true },
-      include: {
-        variants: true,
-      },
-      take: 6,
-    });
-    await prisma.$disconnect();
-    return products;
-  } catch (error) {
-    console.error('Failed to fetch popular products from database. Falling back to mock data.', error);
-    return MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6);
-  }
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string;
+  popular: boolean;
+  allergens: string;
+  imageUrl: string | null;
+  isMeal: boolean;
+  mealDrinkCategory: string | null;
+  variants: Array<{
+    id: string;
+    name: string;
+    price: number;
+    bases?: string[] | null;
+    toppings?: Array<{name: string; price: number}> | null;
+  }>;
+  addons?: Array<{ id: string; name: string; price: number; isRequired?: boolean }>;
 }
 
-export default async function PopularProducts() {
-  const products = await getPopularProducts();
+export default function PopularProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPopularProducts() {
+      try {
+        setLoading(true);
+        // Fetch all products and filter for popular ones
+        const response = await fetch('/api/menu');
+        if (response.ok) {
+          const allProducts: Product[] = await response.json();
+          const popular = allProducts.filter(p => p.popular).slice(0, 6);
+          setProducts(popular);
+        } else {
+          // Fallback to mock data
+          setProducts(MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6));
+        }
+      } catch (error) {
+        console.error('Failed to fetch popular products:', error);
+        // Fallback to mock data
+        setProducts(MOCK_PRODUCTS.filter((product) => product.popular).slice(0, 6));
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchPopularProducts();
+  }, []);
 
   return (
     <section id="popular-dishes" className="py-16 bg-black pt-20 md:pt-24">
@@ -41,11 +67,17 @@ export default async function PopularProducts() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center text-gray-300 py-8">
+            Loading popular dishes...
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
 
         <div className="text-center mt-12">
           <a
