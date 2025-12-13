@@ -1,12 +1,9 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductCard from '@/components/ProductCard';
 import { MOCK_PRODUCTS } from '@/lib/mockMenu';
-
-const DISABLE_DB = process.env.DISABLE_DB === 'true';
-
-// Force dynamic rendering - no caching
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 function buildMockCategories() {
   return MOCK_PRODUCTS.reduce<Record<string, typeof MOCK_PRODUCTS>>((acc, product) => {
@@ -18,75 +15,92 @@ function buildMockCategories() {
   }, {});
 }
 
-async function getProductsByCategory() {
-  if (DISABLE_DB) {
-    return buildMockCategories();
-  }
-
-  try {
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient({
-      log: ['error'],
-    });
-    
-    // Add timeout to database operations to prevent hanging
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Database query timeout after 5 seconds')), 5000);
-    });
-
-    // Fetch category order with timeout
-    const categoriesPromise = prisma.category.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
-    const categories = await Promise.race([categoriesPromise, timeoutPromise]) as Awaited<typeof categoriesPromise>;
-    const categoryOrder = categories.map(c => c.name);
-    
-    // Fetch products with timeout
-    const productsPromise = prisma.product.findMany({
-      include: {
-        variants: true,
-      },
-      orderBy: [
-        { category: 'asc' },
-        { sortOrder: 'asc' },
-        { createdAt: 'desc' },
-      ],
-    });
-    const products = await Promise.race([productsPromise, timeoutPromise]) as Awaited<typeof productsPromise>;
-
-    await prisma.$disconnect();
-
-    const productsByCategory = products.reduce<Record<string, typeof products>>((acc, product) => {
-      if (!acc[product.category]) {
-        acc[product.category] = [];
-      }
-      acc[product.category].push(product);
-      return acc;
-    }, {});
-
-    // Sort categories by order, then add any missing ones
-    const orderedCategories: Record<string, typeof products> = {};
-    categoryOrder.forEach(catName => {
-      if (productsByCategory[catName]) {
-        orderedCategories[catName] = productsByCategory[catName];
-      }
-    });
-    // Add any categories not in the order list
-    Object.keys(productsByCategory).forEach(catName => {
-      if (!orderedCategories[catName]) {
-        orderedCategories[catName] = productsByCategory[catName];
-      }
-    });
-
-    return orderedCategories;
-  } catch (error) {
-    console.error('Failed to fetch menu products from database. Falling back to mock data.', error);
-    return buildMockCategories();
-  }
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category: string;
+  popular: boolean;
+  allergens: string;
+  sortOrder: number;
+  imageUrl: string | null;
+  isMeal: boolean;
+  mealDrinkCategory: string | null;
+  variants: Array<{
+    id: string;
+    name: string;
+    price: number;
+    bases?: string[] | null;
+    toppings?: Array<{name: string; price: number}> | null;
+  }>;
+  addons?: Array<{ id: string; name: string; price: number; isRequired?: boolean }>;
 }
 
-export default async function MenuPage() {
-  const categories = await getProductsByCategory();
+export default function MenuPage() {
+  const [categories, setCategories] = useState<Record<string, Product[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchMenu() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all products from API
+        const response = await fetch('/api/menu');
+        if (!response.ok) {
+          throw new Error('Failed to fetch menu');
+        }
+        
+        const products: Product[] = await response.json();
+        
+        // Fetch categories for ordering
+        const categoriesResponse = await fetch('/api/admin/categories');
+        let categoryOrder: string[] = [];
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          categoryOrder = categoriesData.map((c: {name: string}) => c.name);
+        }
+        
+        // Group products by category
+        const productsByCategory = products.reduce<Record<string, Product[]>>((acc, product) => {
+          if (!acc[product.category]) {
+            acc[product.category] = [];
+          }
+          acc[product.category].push(product);
+          return acc;
+        }, {});
+        
+        // Sort categories by order
+        const orderedCategories: Record<string, Product[]> = {};
+        categoryOrder.forEach(catName => {
+          if (productsByCategory[catName]) {
+            orderedCategories[catName] = productsByCategory[catName];
+          }
+        });
+        // Add any categories not in the order list
+        Object.keys(productsByCategory).forEach(catName => {
+          if (!orderedCategories[catName]) {
+            orderedCategories[catName] = productsByCategory[catName];
+          }
+        });
+        
+        setCategories(orderedCategories);
+      } catch (err) {
+        console.error('Failed to fetch menu:', err);
+        setError('Failed to load menu');
+        // Fallback to mock data
+        setCategories(buildMockCategories());
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchMenu();
+  }, []);
+
   const categoryNames = Object.keys(categories);
   const defaultCategory = categoryNames[0] ?? '';
 
@@ -102,7 +116,15 @@ export default async function MenuPage() {
           </p>
         </div>
 
-        {!categoryNames.length ? (
+        {loading ? (
+          <p className="text-center text-gray-300">
+            Loading menu...
+          </p>
+        ) : error && !categoryNames.length ? (
+          <p className="text-center text-gray-300">
+            Menu is currently unavailable. Please check back soon.
+          </p>
+        ) : !categoryNames.length ? (
           <p className="text-center text-gray-300">
             Menu is currently unavailable. Please check back soon.
           </p>

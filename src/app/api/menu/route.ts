@@ -18,8 +18,10 @@ export async function GET(request: NextRequest) {
       where: category ? { category } : undefined,
       include: {
         variants: true,
+        addons: true,
       },
       orderBy: [
+        { category: 'asc' },
         { sortOrder: 'asc' },
         { createdAt: 'desc' },
       ],
