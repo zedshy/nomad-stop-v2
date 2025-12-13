@@ -1,174 +1,229 @@
-# Security Hardening Guide
+# Complete Security Hardening Guide for Nomad Stop Server
 
-## Immediate Actions
+## Overview
+This guide provides step-by-step instructions to permanently remove malware and secure your server.
 
-### 1. Change All Passwords
+## Prerequisites
+**⚠️ CRITICAL: Before running the hardening script, ensure you have SSH key access!**
 
+If you only have password authentication, you will be locked out after the script runs.
+
+### Check if you have SSH keys:
 ```bash
-# Change user password
-passwd
-
-# Change root password (if you have root access)
-sudo passwd root
-
-# Change database passwords (update in .env)
-# Change application admin passwords
+ls -la ~/.ssh/id_rsa.pub
 ```
 
-### 2. Review and Clean SSH Keys
-
+If this file doesn't exist, generate SSH keys first:
 ```bash
-# View your authorized keys
-cat ~/.ssh/authorized_keys
-
-# Remove any unknown keys
-nano ~/.ssh/authorized_keys
-# Delete lines with unknown keys, save and exit
-
-# View root keys
-sudo cat /root/.ssh/authorized_keys
-# Remove unknown keys if found
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 ```
 
-### 3. Clean Up Malicious Files
-
+Then copy your public key to the server:
 ```bash
-# Remove malicious files from /tmp
-sudo find /tmp -type f \( -name "*react*" -o -name "*miner*" -o -name "*xmrig*" -o -name "*solrk*" \) -delete
-
-# Check for and remove suspicious scripts
-sudo find /var/www -name "*.sh" -type f -exec ls -la {} \;
+ssh-copy-id nomadadmin@92.205.231.55
 ```
 
-### 4. Clean Up Cron Jobs
+## Running the Security Hardening Script
 
+### Option 1: Run the Complete Script (Recommended)
 ```bash
-# View your cron jobs
-crontab -l
-
-# Edit cron jobs (remove suspicious entries)
-crontab -e
-
-# View root cron jobs
-sudo crontab -l
-sudo crontab -e
-
-# Check system cron directories
-ls -la /etc/cron.d/
-ls -la /etc/cron.hourly/
-ls -la /etc/cron.daily/
+chmod +x complete-security-hardening.sh
+./complete-security-hardening.sh
 ```
 
-### 5. Install and Configure Fail2Ban
+### Option 2: Manual Steps (If you prefer step-by-step)
 
+#### Phase 1: Remove Malware
 ```bash
-# Install fail2ban
-sudo apt update
-sudo apt install -y fail2ban
+ssh nomadadmin@92.205.231.55
 
-# Start and enable
-sudo systemctl start fail2ban
-sudo systemctl enable fail2ban
+# Kill all malware processes
+sudo pkill -9 -f javs
+sudo pkill -9 -f nezha
+sudo pkill -9 -f gaganode
+sudo pkill -9 -f "/tmp/fghgf"
+sudo pkill -9 -f sshds
+sudo pkill -9 -f komari
 
-# Check status
-sudo systemctl status fail2ban
+# Remove malware directories
+sudo rm -rf /home/nomadadmin/.javs
+sudo rm -rf /home/nomadadmin/.sshds
+sudo rm -rf /opt/.komari
+sudo rm -rf /tmp/fghgf /tmp/ijnegrrinje.json
+
+# Clean .bashrc
+sed -i '/javs\|nezha\|gaganode\|fghgf\|sshds\|komari/d' ~/.bashrc
+
+# Clean crontab
+crontab -l | grep -v "javs\|nezha\|gaganode" | crontab -
 ```
 
-### 6. Update System Packages
-
+#### Phase 2: Secure SSH
 ```bash
-# Update package list
-sudo apt update
+# Backup SSH config
+sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 
-# Upgrade all packages
-sudo apt upgrade -y
+# Edit SSH config
+sudo nano /etc/ssh/sshd_config
 
-# Check for security updates
-sudo apt list --upgradable
+# Set these values:
+PasswordAuthentication no
+PermitRootLogin no
+PubkeyAuthentication yes
+MaxAuthTries 3
+
+# Test config
+sudo sshd -t
+
+# Restart SSH
+sudo systemctl restart sshd
 ```
 
-### 7. Review Firewall Rules
-
+#### Phase 3: Configure Firewall
 ```bash
-# Check current firewall status
-sudo ufw status verbose
+# Install UFW
+sudo apt-get update
+sudo apt-get install -y ufw
 
-# If not enabled, configure it
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
+# Allow SSH first!
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Block attacker IPs
+sudo ufw deny from 92.40.170.154
+sudo ufw deny from 92.40.170.155
+# ... (add other IPs)
+
+# Enable firewall
 sudo ufw enable
-
-# Check status
-sudo ufw status
 ```
 
-### 8. Review Application Security
-
-The logs show command injection attempts. Review your application code for:
-
-- **Command execution vulnerabilities**: Any code that executes system commands
-- **Input validation**: Ensure all user inputs are validated
-- **Environment variable exposure**: Check if .env is exposed
-- **API endpoints**: Review API routes for vulnerabilities
-
-### 9. Secure Environment Variables
-
+#### Phase 4: Install fail2ban
 ```bash
-# Ensure .env file has correct permissions
-chmod 600 /var/www/nomad-stop/.env
+sudo apt-get install -y fail2ban
 
-# Review .env file for exposed secrets
-cat /var/www/nomad-stop/.env | grep -v "PASSWORD\|SECRET\|PASS"
+# Configure fail2ban
+sudo nano /etc/fail2ban/jail.local
+# (See script for configuration)
 
-# Ensure .env is not in git
-cd /var/www/nomad-stop
-git check-ignore .env || echo ".env" >> .gitignore
+sudo systemctl enable fail2ban
+sudo systemctl restart fail2ban
 ```
 
-### 10. Monitor Logs
+## What the Script Does
 
+### 1. Malware Removal
+- Kills all known malware processes
+- Removes malware directories and files
+- Cleans `.bashrc` and crontab
+- Removes systemd services
+
+### 2. SSH Security
+- Disables password authentication
+- Disables root login
+- Enables public key authentication only
+- Limits authentication attempts
+
+### 3. Firewall Configuration
+- Configures UFW (Uncomplicated Firewall)
+- Allows only necessary ports (22, 80, 443)
+- Blocks known attacker IPs
+
+### 4. Security Tools
+- Installs and configures fail2ban
+- Sets up automatic security updates
+- Creates malware monitoring script
+
+### 5. System Hardening
+- Disables unnecessary services
+- Sets restrictive file permissions
+- Configures automatic updates
+
+### 6. Monitoring
+- Creates daily malware check script
+- Logs to `/var/log/malware-check.log`
+
+## Post-Hardening Checklist
+
+- [ ] Test SSH access with your key
+- [ ] Verify firewall is active: `sudo ufw status`
+- [ ] Check fail2ban status: `sudo fail2ban-client status`
+- [ ] Monitor malware log: `tail -f /var/log/malware-check.log`
+- [ ] Set up regular backups
+- [ ] Consider upgrading server plan (more CPU cores)
+
+## Daily Monitoring
+
+Check these daily:
 ```bash
-# Set up log monitoring
-# Check application logs regularly
-tail -f /var/www/nomad-stop/logs/err.log
+# Check for malware
+sudo /usr/local/bin/check-malware.sh
+cat /var/log/malware-check.log
 
-# Monitor auth logs
-sudo tail -f /var/log/auth.log
+# Check CPU usage
+top
 
-# Monitor system logs
-sudo journalctl -f
+# Check fail2ban
+sudo fail2ban-client status sshd
+
+# Check firewall
+sudo ufw status verbose
 ```
 
-## Long-term Security Measures
+## If You Get Locked Out
 
-1. **Regular Security Audits**: Run the security audit script monthly
-2. **Automated Updates**: Set up automatic security updates
-3. **Backup Strategy**: Regular backups of important data
-4. **Code Review**: Review application code for security vulnerabilities
-5. **WAF**: Consider using a Web Application Firewall
-6. **Intrusion Detection**: Set up monitoring and alerts
-7. **Access Control**: Limit SSH access, use key-based authentication only
-8. **Application Updates**: Keep Next.js and all dependencies updated
+If you lose SSH access:
+1. Contact your hosting provider immediately
+2. Use their web console/VNC access
+3. Restore SSH config: `sudo cp /etc/ssh/sshd_config.backup.* /etc/ssh/sshd_config`
+4. Restart SSH: `sudo systemctl restart sshd`
 
-## How the Server Was Likely Compromised
+## Additional Security Recommendations
 
-Based on the logs, the attack pattern suggests:
+1. **Upgrade Server Plan**: Your 1 CPU core is insufficient. Consider upgrading to at least 2 cores.
 
-1. **Command Injection**: Malicious requests to your application trying to execute commands
-2. **Environment Variable Theft**: Attempts to read .env files
-3. **Persistence**: Attempts to install cron jobs for persistence
-4. **Cryptocurrency Mining**: Attempts to download and run miners
+2. **Regular Backups**: Set up automated backups of:
+   - Database
+   - Application files
+   - Configuration files
 
-## Prevention
+3. **Monitor Resource Usage**: Set up alerts for:
+   - CPU > 80%
+   - Memory > 80%
+   - Disk > 80%
 
-1. **Input Validation**: Validate and sanitize all user inputs
-2. **Command Execution**: Never execute user-provided commands
-3. **Environment Variables**: Never expose .env in logs or responses
-4. **Error Handling**: Don't expose detailed errors to users
-5. **Rate Limiting**: Implement rate limiting on API endpoints
-6. **WAF**: Use a Web Application Firewall to filter malicious requests
+4. **Keep Software Updated**:
+   ```bash
+   sudo apt-get update
+   sudo apt-get upgrade
+   ```
 
+5. **Use Strong SSH Keys**: 4096-bit RSA or Ed25519 keys
 
+6. **Regular Security Audits**: Run security scans monthly
+
+## Troubleshooting
+
+### SSH Connection Refused
+- Check if SSH service is running: `sudo systemctl status sshd`
+- Check firewall: `sudo ufw status`
+- Verify SSH config: `sudo sshd -t`
+
+### High CPU Usage Returns
+- Check for new malware: `ps aux | grep -E "(javs|nezha|gaganode)"`
+- Check malware log: `cat /var/log/malware-check.log`
+- Review top processes: `top`
+
+### Firewall Blocking Legitimate Traffic
+- Check UFW rules: `sudo ufw status numbered`
+- Remove rule: `sudo ufw delete [number]`
+- Allow specific IP: `sudo ufw allow from [IP]`
+
+## Support
+
+If malware returns or you encounter issues:
+1. Check the malware log first
+2. Review system logs: `sudo journalctl -xe`
+3. Contact your hosting provider
+4. Consider professional security audit
