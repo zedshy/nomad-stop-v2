@@ -17,12 +17,12 @@ const handle = app.getRequestHandler();
 
 console.error(`[${new Date().toISOString()}] Calling app.prepare()...`);
 
-// Add timeout to app.prepare() to catch hanging issues
+// Add timeout to app.prepare() to catch hanging issues (reduced to 30s)
 const preparePromise = app.prepare();
 const timeoutPromise = new Promise((_, reject) => {
   setTimeout(() => {
-    reject(new Error('app.prepare() timed out after 60 seconds'));
-  }, 60000);
+    reject(new Error('app.prepare() timed out after 30 seconds - database may be slow or unreachable'));
+  }, 30000);
 });
 
 Promise.race([preparePromise, timeoutPromise]).then(() => {
