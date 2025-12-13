@@ -7,14 +7,15 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || '0.0.0.0'; // Bind to all interfaces
 const port = parseInt(process.env.PORT || '3000', 10);
 
-console.log(`Starting Next.js server in ${dev ? 'development' : 'production'} mode...`);
-console.log(`NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-console.log(`Hostname: ${hostname}, Port: ${port}`);
+// Force output to stderr so PM2 captures it
+console.error(`[${new Date().toISOString()}] Starting Next.js server in ${dev ? 'development' : 'production'} mode...`);
+console.error(`[${new Date().toISOString()}] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.error(`[${new Date().toISOString()}] Hostname: ${hostname}, Port: ${port}`);
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-console.log('Calling app.prepare()...');
+console.error(`[${new Date().toISOString()}] Calling app.prepare()...`);
 
 // Add timeout to app.prepare() to catch hanging issues
 const preparePromise = app.prepare();
@@ -25,7 +26,7 @@ const timeoutPromise = new Promise((_, reject) => {
 });
 
 Promise.race([preparePromise, timeoutPromise]).then(() => {
-  console.log('Next.js app prepared successfully');
+  console.error(`[${new Date().toISOString()}] Next.js app prepared successfully`);
   
   const server = createServer(async (req, res) => {
     try {
@@ -47,7 +48,7 @@ Promise.race([preparePromise, timeoutPromise]).then(() => {
     process.exit(1);
   })
   .listen(port, hostname, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+    console.error(`[${new Date().toISOString()}] > Ready on http://${hostname}:${port}`);
   });
 
   // Handle server shutdown gracefully
@@ -59,7 +60,7 @@ Promise.race([preparePromise, timeoutPromise]).then(() => {
     });
   });
 }).catch((err) => {
-  console.error('Failed to prepare Next.js app:', err);
+  console.error(`[${new Date().toISOString()}] Failed to prepare Next.js app:`, err);
   process.exit(1);
 });
 
