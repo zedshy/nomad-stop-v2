@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, isMeal, mealDrinkCategory, variants, addons } = data;
     
     // Process addons to include isRequired
-    const processedAddons = (addons || []).map((addon: any) => ({
+    const processedAddons = (addons || []).map((addon: {name: string; price: number; isRequired?: boolean}) => ({
       name: addon.name,
       price: addon.price,
       isRequired: addon.isRequired || false,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         isMeal: isMeal || false,
         mealDrinkCategory: mealDrinkCategory || null,
         variants: {
-          create: (variants || []).map((v: any) => ({
+          create: (variants || []).map((v: {name: string; price: number; bases?: string[] | null; toppings?: Array<{name: string; price: number}> | null}) => ({
             name: v.name,
             price: v.price,
             bases: v.bases || null,

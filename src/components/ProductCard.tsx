@@ -34,8 +34,8 @@ interface ProductCardProps {
       id: string;
       name: string;
       price: number;
-      bases?: any;
-      toppings?: any;
+      bases?: string[] | null;
+      toppings?: Array<{name: string; price: number}> | null;
     }[];
   };
 }
@@ -51,6 +51,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [selectedToppings, setSelectedToppings] = useState<Array<{name: string; price: number}>>([]);
   const [selectedDrink, setSelectedDrink] = useState<{id: string; name: string; price: number} | null>(null);
   const [availableDrinks, setAvailableDrinks] = useState<Array<{id: string; name: string; price: number}>>([]);
+  
+  type VariantType = typeof product.variants[0];
 
   // Fetch drinks when meal is selected
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const handleSizeSelected = (variant: typeof product.variants[0]) => {
+  const handleSizeSelected = (variant: VariantType) => {
     setSelectedVariant(variant);
     // If pizza with bases, go to pizza step, else if meal, go to drink step, else add to cart
     if (product.category === 'Pizza' && variant.bases) {
@@ -317,7 +319,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                       <SelectValue placeholder="Select base" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-600">
-                      {(Array.isArray(selectedVariant.bases) ? selectedVariant.bases : []).map((base: string, idx: number) => (
+                      {(Array.isArray(selectedVariant.bases) ? selectedVariant.bases : []).map((base, idx) => (
                         <SelectItem key={idx} value={base} className="text-white">
                           {base}
                         </SelectItem>
@@ -331,7 +333,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                   <div>
                     <Label className="text-white mb-2 block">Extra Toppings (Optional)</Label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {selectedVariant.toppings.map((topping: any, idx: number) => {
+                      {selectedVariant.toppings.map((topping, idx) => {
                         const isSelected = selectedToppings.some(t => t.name === topping.name);
                         return (
                           <button

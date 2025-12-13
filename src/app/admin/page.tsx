@@ -52,7 +52,7 @@ interface Product {
   imageUrl: string | null;
   isMeal: boolean;
   mealDrinkCategory: string | null;
-  variants: Array<{ id: string; name: string; price: number; bases?: any; toppings?: any }>;
+  variants: Array<{ id: string; name: string; price: number; bases?: string[] | null; toppings?: Array<{name: string; price: number}> | null }>;
   addons: Array<{ id: string; name: string; price: number; isRequired?: boolean }>;
 }
 
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
     imageUrl: '',
     isMeal: false,
     mealDrinkCategory: '',
-    variants: [] as Array<{ id?: string; name: string; price: string; bases?: any; toppings?: any }>,
+    variants: [] as Array<{ id?: string; name: string; price: string; bases?: string[] | null; toppings?: Array<{name: string; price: number}> | null }>,
     addons: [] as Array<{ id?: string; name: string; price: string; isRequired?: boolean }>,
   });
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -1036,21 +1036,21 @@ export default function AdminDashboard() {
         category: product.category,
         popular: product.popular,
         allergens: product.allergens || '',
-        sortOrder: (product as any).sortOrder || 0,
-        imageUrl: (product as any).imageUrl || '',
-        isMeal: (product as any).isMeal || false,
-        mealDrinkCategory: (product as any).mealDrinkCategory || '',
+        sortOrder: product.sortOrder || 0,
+        imageUrl: product.imageUrl || '',
+        isMeal: product.isMeal || false,
+        mealDrinkCategory: product.mealDrinkCategory || '',
         variants: Array.isArray(product.variants) 
           ? product.variants.map(v => ({ 
               id: v.id, 
               name: v.name, 
               price: (v.price / 100).toFixed(2),
-              bases: (v as any).bases || null,
-              toppings: (v as any).toppings || null,
+              bases: (v.bases as string[] | null) || null,
+              toppings: (v.toppings as Array<{name: string; price: number}> | null) || null,
             }))
           : [],
         addons: Array.isArray(product.addons) 
-          ? product.addons.map(a => ({ id: a.id, name: a.name, price: (a.price / 100).toFixed(2), isRequired: (a as any).isRequired || false }))
+          ? product.addons.map(a => ({ id: a.id, name: a.name, price: (a.price / 100).toFixed(2), isRequired: a.isRequired || false }))
           : [],
       });
     } else {
@@ -1415,7 +1415,7 @@ export default function AdminDashboard() {
                                                     </tr>
                                                   </thead>
                                                   <tbody>
-                                                    ${selectedOrder.items.map((item: any) => `
+                                                    ${selectedOrder.items.map((item) => `
                                                       <tr>
                                                         <td>${item.name}${item.notes ? `<br><span class="notes">Note: ${item.notes}</span>` : ''}</td>
                                                         <td>${item.quantity}</td>

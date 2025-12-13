@@ -80,7 +80,7 @@ export async function PUT(
     const { name, slug, description, category, popular, allergens, sortOrder, imageUrl, isMeal, mealDrinkCategory, variants, addons } = data;
     
     // Process addons to include isRequired
-    const processedAddons = (addons || []).map((addon: any) => ({
+    const processedAddons = (addons || []).map((addon: {name: string; price: number; isRequired?: boolean}) => ({
       name: addon.name,
       price: addon.price,
       isRequired: addon.isRequired || false,
@@ -132,10 +132,10 @@ export async function PUT(
         allergens: allergens || '',
         sortOrder: sortOrder !== undefined ? sortOrder : existing.sortOrder || 0,
         imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
-        isMeal: isMeal !== undefined ? isMeal : (existing as any).isMeal || false,
-        mealDrinkCategory: mealDrinkCategory !== undefined ? (mealDrinkCategory || null) : (existing as any).mealDrinkCategory,
+        isMeal: isMeal !== undefined ? isMeal : false,
+        mealDrinkCategory: mealDrinkCategory !== undefined ? (mealDrinkCategory || null) : null,
         variants: {
-          create: (variants || []).map((v: any) => ({
+          create: (variants || []).map((v: {name: string; price: number; bases?: string[] | null; toppings?: Array<{name: string; price: number}> | null}) => ({
             name: v.name,
             price: v.price,
             bases: v.bases || null,

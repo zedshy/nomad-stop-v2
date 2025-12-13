@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useState } from 'react';
 
 export default function CartPage() {
   const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, clear, promoCode, updateItemNotes } = useCartStore();
