@@ -25,15 +25,24 @@ async function getProductsByCategory() {
 
   try {
     const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    const prisma = new PrismaClient({
+      log: ['error'],
+    });
     
-    // Fetch category order
-    const categories = await prisma.category.findMany({
+    // Add timeout to database operations to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout after 5 seconds')), 5000);
+    });
+
+    // Fetch category order with timeout
+    const categoriesPromise = prisma.category.findMany({
       orderBy: { sortOrder: 'asc' },
     });
+    const categories = await Promise.race([categoriesPromise, timeoutPromise]) as Awaited<typeof categoriesPromise>;
     const categoryOrder = categories.map(c => c.name);
     
-    const products = await prisma.product.findMany({
+    // Fetch products with timeout
+    const productsPromise = prisma.product.findMany({
       include: {
         variants: true,
       },
@@ -43,6 +52,7 @@ async function getProductsByCategory() {
         { createdAt: 'desc' },
       ],
     });
+    const products = await Promise.race([productsPromise, timeoutPromise]) as Awaited<typeof productsPromise>;
 
     await prisma.$disconnect();
 
