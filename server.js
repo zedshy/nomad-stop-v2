@@ -29,6 +29,24 @@ Promise.race([preparePromise, timeoutPromise]).then(() => {
   console.error(`[${new Date().toISOString()}] Next.js app prepared successfully`);
   
   const server = createServer(async (req, res) => {
+    // Set request timeout to prevent hanging (30 seconds)
+    req.setTimeout(30000, () => {
+      console.error(`[${new Date().toISOString()}] Request timeout: ${req.url}`);
+      if (!res.headersSent) {
+        res.statusCode = 504;
+        res.end('Request timeout');
+      }
+    });
+
+    // Set response timeout
+    res.setTimeout(30000, () => {
+      console.error(`[${new Date().toISOString()}] Response timeout: ${req.url}`);
+      if (!res.headersSent) {
+        res.statusCode = 504;
+        res.end('Response timeout');
+      }
+    });
+
     try {
       const parsedUrl = parse(req.url, true);
       const { pathname, query } = parsedUrl;
@@ -36,7 +54,7 @@ Promise.race([preparePromise, timeoutPromise]).then(() => {
       // Handle Next.js routes
       await handle(req, res, parsedUrl);
     } catch (err) {
-      console.error('Error occurred handling', req.url, err);
+      console.error(`[${new Date().toISOString()}] Error occurred handling ${req.url}:`, err);
       if (!res.headersSent) {
         res.statusCode = 500;
         res.end('Internal server error');
