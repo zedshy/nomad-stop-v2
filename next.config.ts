@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
       process.env.WORLDPAY_ENTITY_ID ||
       '',
   },
+  // Hide X-Powered-By header
+  poweredByHeader: false,
 };
 
 export default nextConfig;
