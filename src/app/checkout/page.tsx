@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
 import { generateTimeSlots } from '@/lib/slots';
+import { UtensilsCrossed, ShoppingBag, Truck } from 'lucide-react';
 
 interface PostcodeValidation {
   isValid: boolean | null; // null = not checked yet, true = valid, false = invalid
@@ -616,15 +617,24 @@ export default function CheckoutPage() {
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="dine_in" id="dine_in" />
-                          <Label htmlFor="dine_in" className="text-white">🍽️ Dine In</Label>
+                          <Label htmlFor="dine_in" className="text-white flex items-center gap-2 cursor-pointer">
+                            <UtensilsCrossed className="w-4 h-4" />
+                            Dine In
+                          </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="pickup" id="pickup" />
-                          <Label htmlFor="pickup" className="text-white">📦 Take Away</Label>
+                          <Label htmlFor="pickup" className="text-white flex items-center gap-2 cursor-pointer">
+                            <ShoppingBag className="w-4 h-4" />
+                            Take Away
+                          </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="delivery" id="delivery" />
-                          <Label htmlFor="delivery" className="text-white">🚚 Delivery</Label>
+                          <Label htmlFor="delivery" className="text-white flex items-center gap-2 cursor-pointer">
+                            <Truck className="w-4 h-4" />
+                            Delivery
+                          </Label>
                         </div>
                       </RadioGroup>
 

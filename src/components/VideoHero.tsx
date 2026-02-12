@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect } from 'react';
 import { useCartStore } from '@/stores/cart';
 import { useRouter } from 'next/navigation';
+import { UtensilsCrossed, ShoppingBag } from 'lucide-react';
 
 export default function VideoHero() {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
@@ -80,18 +81,20 @@ export default function VideoHero() {
             <Button
               size="lg"
               onClick={() => handleOrderType('dine_in')}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px]" 
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px] flex items-center justify-center gap-2" 
               style={{backgroundColor: '#FFD500'}}
             >
-              🍽️ Dine In
+              <UtensilsCrossed className="w-5 h-5" />
+              Dine In
             </Button>
             <Button
               size="lg"
               onClick={() => handleOrderType('pickup')}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px]" 
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px] flex items-center justify-center gap-2" 
               style={{backgroundColor: '#FFD500'}}
             >
-              📦 Take Away
+              <ShoppingBag className="w-5 h-5" />
+              Take Away
             </Button>
           </div>
         </div>
