@@ -136,6 +136,7 @@ enum OrderStatus {
 enum FulfilmentType {
   pickup
   delivery
+  dine_in
 }
 
 enum PaymentStatus {

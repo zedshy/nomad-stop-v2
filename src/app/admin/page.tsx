@@ -1332,9 +1332,11 @@ export default function AdminDashboard() {
                             <div>
                               <span className="text-gray-400">Type:</span>
                               <Badge variant="outline" className={`ml-1 text-xs capitalize border-gray-600 ${
-                                order.fulfilment === 'delivery' ? 'text-blue-400' : 'text-green-400'
+                                order.fulfilment === 'delivery' ? 'text-blue-400' : 
+                                order.fulfilment === 'dine_in' ? 'text-purple-400' : 
+                                'text-green-400'
                               }`}>
-                                {order.fulfilment}
+                                {order.fulfilment === 'dine_in' ? 'Dine In' : order.fulfilment}
                               </Badge>
                             </div>
                             <div>
@@ -1399,7 +1401,11 @@ export default function AdminDashboard() {
                                                 ${selectedOrder.fulfilment === 'delivery' && selectedOrder.addressLine1 ? `
                                                   <p><strong>Address:</strong> ${selectedOrder.addressLine1}${selectedOrder.city ? ', ' + selectedOrder.city : ''}${selectedOrder.postcode ? ' ' + selectedOrder.postcode : ''}</p>
                                                 ` : ''}
-                                                <p><strong>Type:</strong> ${selectedOrder.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+                                                <p><strong>Type:</strong> ${
+                                                  selectedOrder.fulfilment === 'delivery' ? 'Delivery' : 
+                                                  selectedOrder.fulfilment === 'dine_in' ? 'Dine In' : 
+                                                  'Pickup'
+                                                }</p>
                                                 ${selectedOrder.slotStart && selectedOrder.slotEnd ? `<p><strong>Time Slot:</strong> ${selectedOrder.slotStart} - ${selectedOrder.slotEnd}</p>` : ''}
                                               </div>
                                               

@@ -14,7 +14,7 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[];
-  fulfilment: 'pickup' | 'delivery';
+  fulfilment: 'pickup' | 'delivery' | 'dine_in';
   customer: {
     name: string;
     phone: string;
@@ -41,7 +41,7 @@ interface CartStore {
   updateItemNotes: (id: string, notes: string) => void;
   removeItem: (id: string) => void;
   clear: () => void;
-  setFulfilment: (fulfilment: 'pickup' | 'delivery') => void;
+  setFulfilment: (fulfilment: 'pickup' | 'delivery' | 'dine_in') => void;
   setCustomer: (customer: Partial<CartStore['customer']>) => void;
   setAddress: (address: Partial<CartStore['address']>) => void;
   setSlot: (slot: CartStore['slot']) => void;
@@ -178,7 +178,7 @@ export const useCartStore = create<CartStore>()(
         // Original code (commented out for testing):
         // const state = get();
         // const subtotal = state.getSubtotal();
-        // if (state.fulfilment === 'pickup') return 0;
+        // if (state.fulfilment === 'pickup' || state.fulfilment === 'dine_in') return 0;
         // // Free delivery over £25
         // if (subtotal >= 2500) return 0;
         // // £2.99 delivery fee

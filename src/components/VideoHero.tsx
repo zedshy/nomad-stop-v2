@@ -3,10 +3,19 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useEffect } from 'react';
+import { useCartStore } from '@/stores/cart';
+import { useRouter } from 'next/navigation';
 
 export default function VideoHero() {
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const router = useRouter();
+  const setFulfilment = useCartStore((state) => state.setFulfilment);
+
+  const handleOrderType = (type: 'dine_in' | 'pickup') => {
+    setFulfilment(type);
+    router.push('/menu');
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -67,14 +76,24 @@ export default function VideoHero() {
           <p className="text-lg sm:text-xl md:text-2xl mb-8 text-gray-200">
             Order direct, save more, taste more.
           </p>
-          <Link href="/menu">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               size="lg"
-              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg" style={{backgroundColor: '#FFD500'}}
+              onClick={() => handleOrderType('dine_in')}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px]" 
+              style={{backgroundColor: '#FFD500'}}
             >
-              View Menu
+              🍽️ Dine In
             </Button>
-          </Link>
+            <Button
+              size="lg"
+              onClick={() => handleOrderType('pickup')}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-lg font-semibold shadow-lg w-full sm:w-auto min-w-[200px]" 
+              style={{backgroundColor: '#FFD500'}}
+            >
+              📦 Take Away
+            </Button>
+          </div>
         </div>
       </div>
 

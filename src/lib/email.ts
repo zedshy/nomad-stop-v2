@@ -33,7 +33,7 @@ interface OrderEmailData {
   tip: number;
   discount?: number;
   total: number;
-  fulfilment: 'pickup' | 'delivery';
+  fulfilment: 'pickup' | 'delivery' | 'dine_in';
   slotStart?: Date;
   slotEnd?: Date;
   address?: {
@@ -116,7 +116,11 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
                 
                 ${timeSlotText ? `<p><strong>Time Slot:</strong> ${timeSlotText}</p>` : ''}
                 
-                <p><strong>Fulfilment Type:</strong> ${data.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+                <p><strong>Fulfilment Type:</strong> ${
+                  data.fulfilment === 'delivery' ? 'Delivery' : 
+                  data.fulfilment === 'dine_in' ? 'Dine In' : 
+                  'Pickup'
+                }</p>
                 
                 ${data.fulfilment === 'delivery' && data.address ? `
                   <p><strong>Delivery Address:</strong><br>
@@ -140,6 +144,8 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData): Promise<
               <p style="margin-top: 20px;">
                 ${data.fulfilment === 'delivery' 
                   ? 'We\'ll prepare your order and deliver it to your address during the selected time slot.'
+                  : data.fulfilment === 'dine_in'
+                  ? 'We\'ll prepare your order for dine-in service during the selected time slot.'
                   : 'You can pick up your order from our restaurant during the selected time slot.'}
               </p>
               
@@ -166,7 +172,11 @@ Order Details:
 - Order Number: ${data.orderNumber}
 - Order Date: ${new Date().toLocaleDateString('en-GB')}
 ${timeSlotText ? `- Time Slot: ${timeSlotText}` : ''}
-- Fulfilment Type: ${data.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}
+- Fulfilment Type: ${
+  data.fulfilment === 'delivery' ? 'Delivery' : 
+  data.fulfilment === 'dine_in' ? 'Dine In' : 
+  'Pickup'
+}
 
 Items Ordered:
 ${itemsList}

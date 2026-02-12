@@ -54,7 +54,11 @@ export async function sendCustomerReceipt(order: {id: string; customerName: stri
       <h2>Order Details</h2>
       <p><strong>Order Number:</strong> ${order.id}</p>
       <p><strong>Order Time:</strong> ${order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</p>
-      <p><strong>Fulfilment:</strong> ${order.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+      <p><strong>Fulfilment:</strong> ${
+        order.fulfilment === 'delivery' ? 'Delivery' : 
+        order.fulfilment === 'dine_in' ? 'Dine In' : 
+        'Pickup'
+      }</p>
       ${order.slotStart ? `<p><strong>Time Slot:</strong> ${new Date(order.slotStart).toLocaleString()}</p>` : ''}
       
       <h3>Items Ordered</h3>
@@ -66,7 +70,11 @@ export async function sendCustomerReceipt(order: {id: string; customerName: stri
       
       <h3>Total: £${(order.total / 100).toFixed(2)}</h3>
       
-      <p>We'll notify you when your order is ready for ${order.fulfilment === 'delivery' ? 'delivery' : 'pickup'}.</p>
+      <p>We'll notify you when your order is ready for ${
+        order.fulfilment === 'delivery' ? 'delivery' : 
+        order.fulfilment === 'dine_in' ? 'dine-in' : 
+        'pickup'
+      }.</p>
       
       <p>Thank you for choosing Nomad Stop!</p>
     </div>
@@ -88,7 +96,11 @@ export async function sendKitchenTicket(order: {id: string; customerName: string
       <h2>Order #${order.id}</h2>
       <p><strong>Customer:</strong> ${order.customerName}</p>
       <p><strong>Phone:</strong> ${order.customerPhone}</p>
-      <p><strong>Type:</strong> ${order.fulfilment === 'delivery' ? 'Delivery' : 'Pickup'}</p>
+      <p><strong>Type:</strong> ${
+        order.fulfilment === 'delivery' ? 'Delivery' : 
+        order.fulfilment === 'dine_in' ? 'Dine In' : 
+        'Pickup'
+      }</p>
       ${order.slotStart ? `<p><strong>Time Slot:</strong> ${new Date(order.slotStart).toLocaleString()}</p>` : ''}
       
       <h3>Items to Prepare</h3>

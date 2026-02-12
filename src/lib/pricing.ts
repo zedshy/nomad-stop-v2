@@ -10,7 +10,7 @@ export interface PricingBreakdown {
 
 export function calculatePricing(
   subtotal: number,
-  fulfilment: 'pickup' | 'delivery',
+  fulfilment: 'pickup' | 'delivery' | 'dine_in',
   tipPercent: number
 ): PricingBreakdown {
   // Calculate delivery fee

@@ -31,7 +31,7 @@ export default function CheckoutPage() {
     name: '',
     phone: '',
     email: '',
-    fulfilment: 'pickup' as 'pickup' | 'delivery',
+    fulfilment: 'pickup' as 'pickup' | 'delivery' | 'dine_in',
     addressLine1: '',
     city: '',
     postcode: '',
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     discount: 0,
   });
 
-  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setPromoCode, setFulfilment, setTipPercent, promoCode, clear } = useCartStore();
+  const { items, getSubtotal, getDeliveryFee, getTip, getDiscount, getTotal, setCustomer, setAddress, setSlot, setPromoCode, setFulfilment, setTipPercent, promoCode, clear, fulfilment: storeFulfilment } = useCartStore();
   
   // Calculate totals - Zustand tracks items, tipPercent, fulfilment, and promoCode
   // When these change, the component re-renders and totals are recalculated
@@ -65,6 +65,14 @@ export default function CheckoutPage() {
   const tip = getTip();
   const discount = getDiscount();
   const total = getTotal();
+
+  // Load fulfilment from store on mount
+  useEffect(() => {
+    if (storeFulfilment && storeFulfilment !== formData.fulfilment) {
+      setFormData(prev => ({ ...prev, fulfilment: storeFulfilment }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeFulfilment]);
 
   // Load promo code from store if it exists
   useEffect(() => {
@@ -242,6 +250,7 @@ export default function CheckoutPage() {
                  formData.postcode.trim() !== '' &&
                  postcodeValidation.isValid === true; // Must be validated and valid
         }
+        // pickup and dine_in don't need address
         return true;
       case 3:
         return formData.slot !== '';
@@ -606,12 +615,16 @@ export default function CheckoutPage() {
                         onValueChange={(value) => handleInputChange('fulfilment', value)}
                       >
                         <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="dine_in" id="dine_in" />
+                          <Label htmlFor="dine_in" className="text-white">🍽️ Dine In</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
                           <RadioGroupItem value="pickup" id="pickup" />
-                          <Label htmlFor="pickup" className="text-white">Pickup</Label>
+                          <Label htmlFor="pickup" className="text-white">📦 Take Away</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="delivery" id="delivery" />
-                          <Label htmlFor="delivery" className="text-white">Delivery</Label>
+                          <Label htmlFor="delivery" className="text-white">🚚 Delivery</Label>
                         </div>
                       </RadioGroup>
 
