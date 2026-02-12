@@ -35,7 +35,7 @@ interface Product {
     toppings?: Array<{name: string; price: number}> | null;
   }>;
   addons?: Array<{ id: string; name: string; price: number; isRequired?: boolean }>;
-}
+  }
 
 export default function MenuPage() {
   const [categories, setCategories] = useState<Record<string, Product[]>>({});
@@ -56,6 +56,14 @@ export default function MenuPage() {
         
         const products: Product[] = await response.json();
         
+        // If no products returned, fall back to mock data
+        if (!products || products.length === 0) {
+          console.log('No products found, using mock data');
+          setCategories(buildMockCategories());
+          setLoading(false);
+          return;
+        }
+        
         // Fetch categories for ordering
         const categoriesResponse = await fetch('/api/admin/categories');
         let categoryOrder: string[] = [];
@@ -66,12 +74,12 @@ export default function MenuPage() {
         
         // Group products by category
         const productsByCategory = products.reduce<Record<string, Product[]>>((acc, product) => {
-          if (!acc[product.category]) {
-            acc[product.category] = [];
-          }
-          acc[product.category].push(product);
-          return acc;
-        }, {});
+      if (!acc[product.category]) {
+        acc[product.category] = [];
+      }
+      acc[product.category].push(product);
+      return acc;
+    }, {});
         
         // Sort categories by order
         const orderedCategories: Record<string, Product[]> = {};
@@ -84,7 +92,7 @@ export default function MenuPage() {
         Object.keys(productsByCategory).forEach(catName => {
           if (!orderedCategories[catName]) {
             orderedCategories[catName] = productsByCategory[catName];
-          }
+  }
         });
         
         setCategories(orderedCategories);
