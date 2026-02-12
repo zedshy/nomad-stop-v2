@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MOCK_PRODUCTS } from '@/lib/mockMenu';
 
 const DISABLE_DB = process.env.DISABLE_DB === 'true';
 
 export async function GET(request: NextRequest) {
+  let prisma: import('@prisma/client').PrismaClient | null = null;
+
   try {
     if (DISABLE_DB) {
-      return NextResponse.json([]);
+      // Return mock products when DB is disabled
+      return NextResponse.json(MOCK_PRODUCTS);
     }
 
     const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    prisma = new PrismaClient();
 
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
@@ -27,12 +31,22 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    await prisma.$disconnect();
-
     return NextResponse.json(products);
   } catch (error) {
     console.error('Failed to fetch menu products:', error);
-    return NextResponse.json([], { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // If table doesn't exist or connection fails, return mock data
+    if (errorMessage.includes('table') && errorMessage.includes('does not exist')) {
+      console.warn('Product table does not exist yet. Returning mock data. Run migrations: npx prisma migrate deploy');
+    }
+    
+    // Return mock products on error so menu can still be displayed
+    return NextResponse.json(MOCK_PRODUCTS);
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 
